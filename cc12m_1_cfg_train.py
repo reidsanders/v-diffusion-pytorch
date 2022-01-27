@@ -558,14 +558,14 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
-        gpus=8,
+        gpus=1,
         num_nodes=4,
         accelerator='ddp',
         precision=32,
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
         log_every_n_steps=1,
-        max_epochs=10000000,
+        max_epochs=2,
         # resume_from_checkpoint='cc12m_1_cfg_start_1.ckpt',
     )
 

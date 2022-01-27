@@ -3,5 +3,10 @@ regex
 requests
 Pillow
 torch
+pytorch-lightning
 torchvision
+torchaudio
+torchtext
+torchmetrics
 tqdm
+wandb
