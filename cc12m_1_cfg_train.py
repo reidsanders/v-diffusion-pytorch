@@ -20,6 +20,7 @@ from torchvision import transforms, utils
 from torchvision.transforms import functional as TF
 from tqdm import trange
 import wandb
+import json
 
 from CLIP import clip
 
@@ -407,10 +408,10 @@ class JsonCaptions(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         with open(self.indexfile, "r") as f:
-            self.dataindex = json.reads(f)
-            self.data = self.dataindex.data
+            self.dataindex = json.loads(f.read())
+            self.data = self.dataindex["data"]
         print(
-            f'Captions Data: found {self.data.len()} images.', file=sys.stderr
+            f'Captions Data: found {len(self.data)} images.', file=sys.stderr
         )
 
     def __len__(self):
@@ -646,13 +647,13 @@ def main():
         batch_size,
         shuffle=True,
         worker_init_fn=worker_init_fn,
-        num_workers=6,
+        num_workers=4,
         persistent_workers=True
     )
 
-    demo_set = JsonCaptions(args.train_set, transform=tf)
-    demo_dl = data.DataLoader(demo_set, 25, shuffle=True)
-    demo_prompts = next(iter(demo_dl))[1]
+    #demo_set = JsonCaptions(args.train_set, transform=tf)
+    #demo_dl = data.DataLoader(demo_set, 25, shuffle=True)
+    #demo_prompts = next(iter(demo_dl))[1]
 
     demo_prompts = [
         line.rstrip() for line in open(args.demo_prompts).readlines()
@@ -669,7 +670,7 @@ def main():
     trainer = pl.Trainer(
         gpus=1,
         num_nodes=4,
-        accelerator='ddp',
+        strategy='ddp',
         precision=32,
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
