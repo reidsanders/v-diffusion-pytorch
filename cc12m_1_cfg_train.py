@@ -65,11 +65,13 @@ def ema_update(model, averaged_model, decay):
 
 # Define the diffusion noise schedule
 
+
 def get_alphas_sigmas(t):
     return torch.cos(t * math.pi / 2), torch.sin(t * math.pi / 2)
 
 
 # Define the model (a residual U-Net)
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, main, skip=None):
@@ -84,12 +86,14 @@ class ResidualBlock(nn.Module):
 class ResLinearBlock(ResidualBlock):
     def __init__(self, f_in, f_mid, f_out, is_last=False):
         skip = None if f_in == f_out else nn.Linear(f_in, f_out, bias=False)
-        super().__init__([
-            nn.Linear(f_in, f_mid),
-            nn.ReLU(inplace=True),
-            nn.Linear(f_mid, f_out),
-            nn.ReLU(inplace=True) if not is_last else nn.Identity(),
-        ], skip)
+        super().__init__(
+            [
+                nn.Linear(f_in, f_mid),
+                nn.ReLU(inplace=True),
+                nn.Linear(f_mid, f_out),
+                nn.ReLU(inplace=True) if not is_last else nn.Identity(),
+            ], skip
+        )
 
 
 class Modulation2d(nn.Module):
@@ -100,22 +104,28 @@ class Modulation2d(nn.Module):
 
     def forward(self, input):
         scales, shifts = self.layer(self.state['cond']).chunk(2, dim=-1)
-        return torch.addcmul(shifts[..., None, None], input, scales[..., None, None] + 1)
+        return torch.addcmul(
+            shifts[..., None, None], input, scales[..., None, None] + 1
+        )
 
 
 class ResModConvBlock(ResidualBlock):
     def __init__(self, state, feats_in, c_in, c_mid, c_out, is_last=False):
         skip = None if c_in == c_out else nn.Conv2d(c_in, c_out, 1, bias=False)
-        super().__init__([
-            nn.Conv2d(c_in, c_mid, 3, padding=1),
-            nn.GroupNorm(1, c_mid, affine=False),
-            Modulation2d(state, feats_in, c_mid),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(c_mid, c_out, 3, padding=1),
-            nn.GroupNorm(1, c_out, affine=False) if not is_last else nn.Identity(),
-            Modulation2d(state, feats_in, c_out) if not is_last else nn.Identity(),
-            nn.ReLU(inplace=True) if not is_last else nn.Identity(),
-        ], skip)
+        super().__init__(
+            [
+                nn.Conv2d(c_in, c_mid, 3, padding=1),
+                nn.GroupNorm(1, c_mid, affine=False),
+                Modulation2d(state, feats_in, c_mid),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(c_mid, c_out, 3, padding=1),
+                nn.GroupNorm(1, c_out, affine=False)
+                if not is_last else nn.Identity(),
+                Modulation2d(state, feats_in, c_out)
+                if not is_last else nn.Identity(),
+                nn.ReLU(inplace=True) if not is_last else nn.Identity(),
+            ], skip
+        )
 
 
 class SkipBlock(nn.Module):
@@ -132,7 +142,9 @@ class FourierFeatures(nn.Module):
     def __init__(self, in_features, out_features, std=1.):
         super().__init__()
         assert out_features % 2 == 0
-        self.weight = nn.Parameter(torch.randn([out_features // 2, in_features]) * std)
+        self.weight = nn.Parameter(
+            torch.randn([out_features // 2, in_features]) * std
+        )
         self.weight.requires_grad_(False)
         # self.register_buffer('weight', torch.randn([out_features // 2, in_features]) * std)
 
@@ -154,7 +166,8 @@ class SelfAttention2d(nn.Module):
     def forward(self, input):
         n, c, h, w = input.shape
         qkv = self.qkv_proj(self.norm(input))
-        qkv = qkv.view([n, self.n_head * 3, c // self.n_head, h * w]).transpose(2, 3)
+        qkv = qkv.view([n, self.n_head * 3, c // self.n_head,
+                        h * w]).transpose(2, 3)
         q, k, v = qkv.chunk(3, dim=1)
         scale = k.shape[3]**-0.25
         att = ((q * scale) @ (k.transpose(2, 3) * scale)).softmax(3)
@@ -187,7 +200,9 @@ class DiffusionModel(nn.Module):
 
         self.timestep_embed = FourierFeatures(1, 16)
         self.down = nn.AvgPool2d(2)
-        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
+        self.up = nn.Upsample(
+            scale_factor=2, mode='bilinear', align_corners=False
+        )
 
         self.net = nn.Sequential(   # 256x256
             conv_block(3 + 16, cs[0], cs[0]),
@@ -301,10 +316,15 @@ class DiffusionModel(nn.Module):
                 param *= 0.5**0.5
 
     def forward(self, input, t, clip_embed):
-        clip_embed = F.normalize(clip_embed, dim=-1) * clip_embed.shape[-1]**0.5
+        clip_embed = F.normalize(clip_embed, dim=-1) * \
+                                 clip_embed.shape[-1]**0.5
         mapping_timestep_embed = self.mapping_timestep_embed(t[:, None])
-        self.state['cond'] = self.mapping(torch.cat([clip_embed, mapping_timestep_embed], dim=1))
-        timestep_embed = expand_to_planes(self.timestep_embed(t[:, None]), input.shape)
+        self.state['cond'] = self.mapping(
+            torch.cat([clip_embed, mapping_timestep_embed], dim=1)
+        )
+        timestep_embed = expand_to_planes(
+            self.timestep_embed(t[:, None]), input.shape
+        )
         out = self.net(torch.cat([input, timestep_embed], dim=1))
         self.state.clear()
         return out
@@ -328,7 +348,11 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
             ts_in = torch.cat([ts, ts])
             clip_embed = extra_args['clip_embed']
             clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
-            v_uncond, v_cond = model(x_in, ts_in * t[i], {'clip_embed': clip_embed}).float().chunk(2)
+            v_uncond, v_cond = model(
+                x_in, ts_in * t[i], {
+                    'clip_embed': clip_embed
+                }
+            ).float().chunk(2)
         v = v_uncond + guidance_scale * (v_cond - v_uncond)
 
         # Predict the noise and the denoised image
@@ -367,12 +391,55 @@ class TokenizerWrapper:
     def __call__(self, texts):
         if isinstance(texts, str):
             texts = [texts]
-        result = torch.zeros([len(texts), self.context_length], dtype=torch.long)
+        result = torch.zeros(
+            [len(texts), self.context_length], dtype=torch.long
+        )
         for i, text in enumerate(texts):
             tokens_trunc = self.tokenizer.encode(text)[:self.max_len]
             tokens = [self.sot_token, *tokens_trunc, self.eot_token]
             result[i, :len(tokens)] = torch.tensor(tokens)
         return result
+
+
+class JsonCaptions(data.Dataset):
+    def __init__(self, root, transform=None, target_transform=None):
+        self.indexfile = Path(root) / 'index.json'
+        self.transform = transform
+        self.target_transform = target_transform
+        with open(self.indexfile, "r") as f:
+            self.dataindex = json.reads(f)
+            self.data = self.dataindex.data
+        print(
+            f'Captions Data: found {self.data.len()} images.', file=sys.stderr
+        )
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        try:
+            try:
+                text, image_path = self.data[index]
+                image = Image.open(Path(root) / image_path)
+                if self.transform is not None:
+                    image = self.transform(image)
+                if self.target_transform is not None:
+                    text = self.target_transform(text)
+                return image, text
+            except (
+                OSError, ValueError, Image.DecompressionBombError,
+                Image.UnidentifiedImageError
+            ) as err:
+                print(
+                    f'Bad image, skipping: {index} {self.stems[index]} '
+                    f'{type(err).__name__}: {err!s}',
+                    file=sys.stderr
+                )
+                return self[random.randrange(len(self))]
+        except Exception as err:
+            print(f'{type(err).__name__}: {err!s}', file=sys.stderr)
+            # return self[random.randrange(len(self))]
+            raise
 
 
 class ConceptualCaptions(data.Dataset):
@@ -383,7 +450,10 @@ class ConceptualCaptions(data.Dataset):
         self.target_transform = target_transform
         # self.stems = sorted(path.stem for path in self.images_root.glob('*/*.jpg'))
         self.stems = [line.rstrip() for line in open(stems_list).readlines()]
-        print(f'Conceptual Captions: found {len(self.stems)} images.', file=sys.stderr)
+        print(
+            f'Conceptual Captions: found {len(self.stems)} images.',
+            file=sys.stderr
+        )
 
     def _get_image_text(self, stem):
         image = self.images_root / stem[:5] / (stem + '.jpg')
@@ -404,10 +474,15 @@ class ConceptualCaptions(data.Dataset):
                 if self.target_transform is not None:
                     text = self.target_transform(text)
                 return image, text
-            except (OSError, ValueError,
-                    Image.DecompressionBombError, Image.UnidentifiedImageError) as err:
-                print(f'Bad image, skipping: {index} {self.stems[index]} '
-                      f'{type(err).__name__}: {err!s}', file=sys.stderr)
+            except (
+                OSError, ValueError, Image.DecompressionBombError,
+                Image.UnidentifiedImageError
+            ) as err:
+                print(
+                    f'Bad image, skipping: {index} {self.stems[index]} '
+                    f'{type(err).__name__}: {err!s}',
+                    file=sys.stderr
+                )
                 return self[random.randrange(len(self))]
         except Exception as err:
             print(f'{type(err).__name__}: {err!s}', file=sys.stderr)
@@ -428,7 +503,8 @@ class LightningDiffusion(pl.LightningModule):
         super().__init__()
         self.model = DiffusionModel()
         self.model_ema = deepcopy(self.model)
-        self.clip_model = clip.load('ViT-B/16', 'cpu', jit=False)[0].eval().requires_grad_(False)
+        self.clip_model = clip.load('ViT-B/16', 'cpu',
+                                    jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
 
     def forward(self, *args, **kwargs):
@@ -491,21 +567,34 @@ class DemoCallback(pl.Callback):
         if trainer.global_step == 0 or trainer.global_step % 10000 != 0:
             return
 
-        lines = [f'({i // 4}, {i % 4}) {line}' for i, line in enumerate(self.prompts)]
+        lines = [
+            f'({i // 4}, {i % 4}) {line}'
+            for i, line in enumerate(self.prompts)
+        ]
         lines_text = '\n'.join(lines)
         Path('demo_prompts_out.txt').write_text(lines_text)
 
         noise = torch.randn([16, 3, 256, 256], device=module.device)
-        clip_embed = module.clip_model.encode_text(self.prompts_toks.to(module.device))
+        clip_embed = module.clip_model.encode_text(
+            self.prompts_toks.to(module.device)
+        )
         with eval_mode(module):
-            fakes = sample(module, noise, 1000, 1, {'clip_embed': clip_embed}, guidance_scale=3.)
+            fakes = sample(
+                module,
+                noise,
+                1000,
+                1, {'clip_embed': clip_embed},
+                guidance_scale=3.
+            )
 
         grid = utils.make_grid(fakes, 4, padding=0).cpu()
         image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
         filename = f'demo_{trainer.global_step:08}.png'
         image.save(filename)
-        log_dict = {'demo_grid': wandb.Image(image),
-                    'prompts': wandb.Html(f'<pre>{lines_text}</pre>')}
+        log_dict = {
+            'demo_grid': wandb.Image(image),
+            'prompts': wandb.Html(f'<pre>{lines_text}</pre>')
+        }
         trainer.logger.experiment.log(log_dict, step=trainer.global_step)
 
 
@@ -520,41 +609,61 @@ def worker_init_fn(worker_id):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--train-set', type=Path, required=True,
-                   help='the training set location')
-    p.add_argument('--demo-prompts', type=Path, required=True,
-                   help='the demo prompts')
+    p.add_argument(
+        '--train-set',
+        type=Path,
+        required=True,
+        help='the training set location'
+    )
+    p.add_argument(
+        '--demo-prompts', type=Path, required=True, help='the demo prompts'
+    )
     args = p.parse_args()
 
     batch_size = 2
     size = 256
 
-    tf = transforms.Compose([
-        ToMode('RGB'),
-        transforms.Resize(size, interpolation=transforms.InterpolationMode.LANCZOS),
-        transforms.CenterCrop(size),
-        transforms.ToTensor(),
-        transforms.Normalize([0.5], [0.5]),
-    ])
+    tf = transforms.Compose(
+        [
+            ToMode('RGB'),
+            transforms.Resize(
+                size, interpolation=transforms.InterpolationMode.LANCZOS
+            ),
+            transforms.CenterCrop(size),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5]),
+        ]
+    )
     tok_wrap = TokenizerWrapper()
 
     def ttf(caption):
         return tok_wrap(caption).squeeze(0)
 
-    train_set = ConceptualCaptions(args.train_set, 'stems.txt', transform=tf, target_transform=ttf)
-    train_dl = data.DataLoader(train_set, batch_size, shuffle=True, worker_init_fn=worker_init_fn,
-                               num_workers=6, persistent_workers=True)
+    #train_set = ConceptualCaptions(args.train_set, 'stems.txt', transform=tf, target_transform=ttf)
+    train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
+    train_dl = data.DataLoader(
+        train_set,
+        batch_size,
+        shuffle=True,
+        worker_init_fn=worker_init_fn,
+        num_workers=6,
+        persistent_workers=True
+    )
 
-    # demo_set = ConceptualCaptions(args.train_set, transform=tf)
-    # demo_dl = data.DataLoader(demo_set, 25, shuffle=True)
-    # demo_prompts = next(iter(demo_dl))[1]
+    demo_set = JsonCaptions(args.train_set, transform=tf)
+    demo_dl = data.DataLoader(demo_set, 25, shuffle=True)
+    demo_prompts = next(iter(demo_dl))[1]
 
-    demo_prompts = [line.rstrip() for line in open(args.demo_prompts).readlines()]
+    demo_prompts = [
+        line.rstrip() for line in open(args.demo_prompts).readlines()
+    ]
 
     model = LightningDiffusion()
     wandb_logger = pl.loggers.WandbLogger(project='kat-diffusion')
     wandb_logger.watch(model.model)
-    ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=50000, save_top_k=-1)
+    ckpt_callback = pl.callbacks.ModelCheckpoint(
+        every_n_train_steps=50000, save_top_k=-1
+    )
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
