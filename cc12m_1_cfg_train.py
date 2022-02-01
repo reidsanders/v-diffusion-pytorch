@@ -202,7 +202,7 @@ class DiffusionModel(nn.Module):
         self.timestep_embed = FourierFeatures(1, 16)
         self.down = nn.AvgPool2d(2)
         self.up = nn.Upsample(
-            scale_factor=2, mode='bilinear', align_corners=False
+            scale_factor=2, mode='nearest', align_corners=False
         )
 
         self.net = nn.Sequential(   # 256x256
@@ -668,7 +668,7 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
-        tpu_cores=1,
+        tpu_cores=[1],
         num_nodes=1,
         #strategy='ddp',
         precision='bf16',
