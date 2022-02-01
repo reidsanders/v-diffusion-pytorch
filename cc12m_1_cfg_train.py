@@ -622,7 +622,7 @@ def main():
     )
     args = p.parse_args()
 
-    batch_size = 1
+    batch_size = 2
     size = 256
 
     tf = transforms.Compose(
