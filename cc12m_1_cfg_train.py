@@ -629,7 +629,9 @@ def main():
         [
             ToMode('RGB'),
             transforms.Resize(
-                size, interpolation=transforms.InterpolationMode.LANCZOS
+                size,
+                #interpolation=transforms.InterpolationMode.LANCZOS
+                interpolation=transforms.InterpolationMode.NEAREST
             ),
             transforms.CenterCrop(size),
             transforms.ToTensor(),
