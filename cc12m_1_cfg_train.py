@@ -622,8 +622,8 @@ def main():
     )
     args = p.parse_args()
 
-    batch_size = 1
-    size = 128
+    batch_size = 4
+    size = 256
 
     tf = transforms.Compose(
         [
@@ -668,15 +668,15 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
-        tpu_cores=1,
+        tpu_cores=8,
         num_nodes=1,
         #strategy='ddp',
         precision='bf16',
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
-        log_every_n_steps=1,
+        log_every_n_steps=1000,
         max_epochs=2,
-        flush_logs_every_n_steps=1,
+        #flush_logs_every_n_steps=100,
         # resume_from_checkpoint='cc12m_1_cfg_start_1.ckpt',
     )
 
