@@ -404,6 +404,7 @@ class TokenizerWrapper:
 
 class JsonCaptions(data.Dataset):
     def __init__(self, root, transform=None, target_transform=None):
+        self.root = root
         self.indexfile = Path(root) / 'index.json'
         self.transform = transform
         self.target_transform = target_transform
@@ -421,7 +422,7 @@ class JsonCaptions(data.Dataset):
         try:
             try:
                 text, image_path = self.data[index]
-                image = Image.open(Path(root) / image_path)
+                image = Image.open(Path(self.root) / image_path)
                 if self.transform is not None:
                     image = self.transform(image)
                 if self.target_transform is not None:
@@ -621,8 +622,8 @@ def main():
     )
     args = p.parse_args()
 
-    batch_size = 2
-    size = 256
+    batch_size = 1
+    size = 128
 
     tf = transforms.Compose(
         [
@@ -647,13 +648,10 @@ def main():
         batch_size,
         shuffle=True,
         worker_init_fn=worker_init_fn,
-        num_workers=4,
-        persistent_workers=True
+        num_workers=1,
+        persistent_workers=True,
+        pin_memory=True,
     )
-
-    #demo_set = JsonCaptions(args.train_set, transform=tf)
-    #demo_dl = data.DataLoader(demo_set, 25, shuffle=True)
-    #demo_prompts = next(iter(demo_dl))[1]
 
     demo_prompts = [
         line.rstrip() for line in open(args.demo_prompts).readlines()
@@ -668,14 +666,15 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
-        gpus=1,
-        num_nodes=4,
-        strategy='ddp',
-        precision=32,
+        tpu_cores=8,
+        num_nodes=1,
+        #strategy='ddp',
+        precision=16,
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
         log_every_n_steps=1,
         max_epochs=2,
+        flush_logs_every_n_steps=1,
         # resume_from_checkpoint='cc12m_1_cfg_start_1.ckpt',
     )
 
