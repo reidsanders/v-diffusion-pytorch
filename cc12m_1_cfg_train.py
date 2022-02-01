@@ -648,7 +648,7 @@ def main():
         batch_size,
         shuffle=True,
         worker_init_fn=worker_init_fn,
-        num_workers=1,
+        num_workers=90,
         persistent_workers=True,
         pin_memory=True,
     )
@@ -666,10 +666,10 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
-        tpu_cores=8,
+        tpu_cores=1,
         num_nodes=1,
         #strategy='ddp',
-        precision=16,
+        precision='bf16',
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
         log_every_n_steps=1,
