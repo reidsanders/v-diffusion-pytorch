@@ -581,30 +581,36 @@ class DemoCallback(pl.Callback):
         ]
         lines_text = '\n'.join(lines)
         Path('demo_prompts_out.txt').write_text(lines_text)
-
-        noise = torch.randn([16, 3, 256, 256], device=module.device)
-        clip_embed = module.clip_model.encode_text(
-            self.prompts_toks.to(module.device)
-        )
-        with eval_mode(module):
-            fakes = sample(
-                module,
-                noise,
-                1000,
-                1, {'clip_embed': clip_embed},
-                guidance_scale=3.
-            )
-
-        grid = utils.make_grid(fakes, 4, padding=0).cpu()
-        image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
-        filename = f'demo_{trainer.global_step:08}.png'
-        image.save(filename)
+        #### NOTE testing
         log_dict = {
-            'demo_grid': wandb.Image(image),
             'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
             #'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
         }
         trainer.logger.experiment.log(log_dict, step=trainer.global_step)
+        ####
+        #noise = torch.randn([16, 3, 256, 256], device=module.device)
+        #clip_embed = module.clip_model.encode_text(
+            #self.prompts_toks.to(module.device)
+        #)
+        #with eval_mode(module):
+            #fakes = sample(
+                #module,
+                #noise,
+                #1000,
+                #1, {'clip_embed': clip_embed},
+                #guidance_scale=3.
+            #)
+
+        #grid = utils.make_grid(fakes, 4, padding=0).cpu()
+        #image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
+        #filename = f'demo_{trainer.global_step:08}.png'
+        #image.save(filename)
+        #log_dict = {
+            #'demo_grid': wandb.Image(image),
+            #'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
+            ##'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
+        #}
+        #trainer.logger.experiment.log(log_dict, step=trainer.global_step)
 
 
 class ExceptionCallback(pl.Callback):
