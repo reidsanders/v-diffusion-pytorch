@@ -2,6 +2,8 @@
 #curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o Miniconda3-latest-Linux-x86_64.sh
 #bash Miniconda3-latest-Linux-x86_64.sh
 
+## TODO run installation of v-diffusion-pytorch
+## move to outer dir
 
 #git clone https://github.com/samoshkin/tmux-config.giit
 git clone --branch patch-1 https://github.com/computertoucher/tmux-config.git
