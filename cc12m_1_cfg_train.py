@@ -21,6 +21,7 @@ from torchvision.transforms import functional as TF
 from tqdm import trange
 import wandb
 import json
+import os
 
 from CLIP import clip
 
