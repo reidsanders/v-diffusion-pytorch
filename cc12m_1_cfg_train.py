@@ -692,7 +692,8 @@ def main():
         #resume_from_checkpoint=args.checkpoint,
     )
 
-    trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
+    #trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
+    trainer.fit(model, train_dl)
 
 
 if __name__ == '__main__':
