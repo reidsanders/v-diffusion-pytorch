@@ -592,14 +592,14 @@ class DemoCallback(pl.Callback):
         clip_embed = module.clip_model.encode_text(
             self.prompts_toks.to(module.device)
         )
-        #with eval_mode(module):
-            #fakes = sample(
-                #module,
-                #noise,
-                #1000,
-                #1, {'clip_embed': clip_embed},
-                #guidance_scale=3.
-            #)
+        with eval_mode(module):
+            fakes = sample(
+                module,
+                noise,
+                1000,
+                1, {'clip_embed': clip_embed},
+                guidance_scale=3.
+            )
 
         #grid = utils.make_grid(fakes, 4, padding=0).cpu()
         #image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
