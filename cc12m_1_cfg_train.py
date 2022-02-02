@@ -600,7 +600,7 @@ class DemoCallback(pl.Callback):
             'demo_grid': wandb.Image(image),
             'prompts': wandb.Html(f'<pre>{lines_text}</pre>')
         }
-        trainer.logger.experiment.log(log_dict, step=trainer.global_step)
+        trainer.logger.experiment.log_dict(log_dict, step=trainer.global_step)
 
 
 class ExceptionCallback(pl.Callback):
@@ -688,7 +688,7 @@ def main():
         logger=wandb_logger,
         log_every_n_steps=100,
         max_epochs=2,
-        flush_logs_every_n_steps=100,
+        #flush_logs_every_n_steps=100,
         #resume_from_checkpoint=args.checkpoint,
     )
 
