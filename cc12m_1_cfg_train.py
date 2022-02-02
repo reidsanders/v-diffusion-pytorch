@@ -626,7 +626,7 @@ def main():
     args = p.parse_args()
     ### See https://github.com/wandb/client/issues/1994
     #os.environ['WANDB_CONSOLE'] = 'off'
-
+    wandb.require(experiment="service")
     batch_size = 2
     size = 256
 
