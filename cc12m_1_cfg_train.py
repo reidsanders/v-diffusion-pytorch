@@ -599,7 +599,7 @@ class DemoCallback(pl.Callback):
         image.save(filename)
         log_dict = {
             'demo_grid': wandb.Image(image),
-            'prompts': wandb.Html(f'<pre>{lines_text}</pre>')
+            'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
             'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
         }
         trainer.logger.experiment.log_dict(log_dict, step=trainer.global_step)
