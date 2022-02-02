@@ -21,7 +21,7 @@ from torchvision.transforms import functional as TF
 from tqdm import trange
 import wandb
 import json
-import os
+#import os
 
 from CLIP import clip
 
@@ -625,7 +625,7 @@ def main():
     )
     args = p.parse_args()
     ### See https://github.com/wandb/client/issues/1994
-    os.environ['WANDB_CONSOLE'] = 'off'
+    #os.environ['WANDB_CONSOLE'] = 'off'
 
     batch_size = 2
     size = 256
