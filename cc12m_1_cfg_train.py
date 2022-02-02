@@ -623,6 +623,8 @@ def main():
         '--demo-prompts', type=Path, required=True, help='the demo prompts'
     )
     args = p.parse_args()
+    ### See https://github.com/wandb/client/issues/1994
+    os.environ['WANDB_CONSOLE'] = 'off'
 
     batch_size = 2
     size = 256
