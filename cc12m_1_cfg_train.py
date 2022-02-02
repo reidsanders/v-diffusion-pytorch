@@ -569,7 +569,7 @@ class DemoCallback(pl.Callback):
     @rank_zero_only
     @torch.no_grad()
     def on_batch_end(self, trainer, module):
-        if trainer.global_step == 0 or trainer.global_step % 10000 != 0:
+        if trainer.global_step == 0 or trainer.global_step % 1000 != 0:
             return
 
         lines = [
