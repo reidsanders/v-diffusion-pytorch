@@ -517,7 +517,7 @@ class LightningDiffusion(pl.LightningModule):
         return self.model_ema(*args, **kwargs)
 
     def configure_optimizers(self):
-        return optim.AdamW(self.model.parameters(), lr=3e-5, weight_decay=0.01)
+        return optim.AdamW(self.model.parameters(), lr=3e-5, eps=1e-5, weight_decay=0.01)
         # return optim.AdamW(self.model.parameters(), lr=5e-6, weight_decay=0.01)
 
     def eval_batch(self, batch):
