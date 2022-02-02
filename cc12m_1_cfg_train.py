@@ -13,6 +13,7 @@ from PIL import Image
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.distributed import rank_zero_only
 import torch
+import torch_xla.debug.metrics as met
 from torch import optim, nn
 from torch.nn import functional as F
 from torch.utils import data
@@ -599,6 +600,7 @@ class DemoCallback(pl.Callback):
         log_dict = {
             'demo_grid': wandb.Image(image),
             'prompts': wandb.Html(f'<pre>{lines_text}</pre>')
+            'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
         }
         trainer.logger.experiment.log_dict(log_dict, step=trainer.global_step)
 

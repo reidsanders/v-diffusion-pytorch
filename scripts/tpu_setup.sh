@@ -10,4 +10,4 @@ git clone --branch patch-1 https://github.com/computertoucher/tmux-config.git
 cp ./.inputrc ~/
 
 printf 'export XRT_TPU_CONFIG="localservice;0;localhost:51011"' >> ~/.bashrc
-
+printf 'export PT_XLA_DEBUG=1' >> ~/.bashrc
