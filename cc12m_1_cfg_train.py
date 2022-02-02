@@ -655,7 +655,7 @@ def main():
         batch_size,
         shuffle=True,
         worker_init_fn=worker_init_fn,
-        num_workers=90,
+        num_workers=96,
         persistent_workers=True,
         pin_memory=True,
     )
@@ -668,7 +668,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project='kat-diffusion')
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(
-        every_n_train_steps=10000, save_top_k=-1
+        every_n_train_steps=1000, save_top_k=-1
     )
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
@@ -679,9 +679,9 @@ def main():
         precision='bf16',
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
-        log_every_n_steps=1000,
+        log_every_n_steps=100,
         max_epochs=2,
-        #flush_logs_every_n_steps=100,
+        flush_logs_every_n_steps=100,
         # resume_from_checkpoint='cc12m_1_cfg_start_1.ckpt',
     )
 
