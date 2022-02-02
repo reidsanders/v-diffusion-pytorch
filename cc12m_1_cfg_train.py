@@ -569,7 +569,7 @@ class DemoCallback(pl.Callback):
     @rank_zero_only
     @torch.no_grad()
     def on_batch_end(self, trainer, module):
-        if trainer.global_step == 0 or trainer.global_step % 1000 != 0:
+        if trainer.global_step == 0 or trainer.global_step % 100 != 0:
             return
 
         lines = [
@@ -622,6 +622,13 @@ def main():
     )
     p.add_argument(
         '--demo-prompts', type=Path, required=True, help='the demo prompts'
+    )
+    p.add_argument(
+        '--checkpoint',
+        type=Path,
+        default=None,
+        required=False,
+        help='load checkpoint file path'
     )
     args = p.parse_args()
     ### See https://github.com/wandb/client/issues/1994
@@ -682,10 +689,10 @@ def main():
         log_every_n_steps=100,
         max_epochs=2,
         flush_logs_every_n_steps=100,
-        # resume_from_checkpoint='cc12m_1_cfg_start_1.ckpt',
+        #resume_from_checkpoint=args.checkpoint,
     )
 
-    trainer.fit(model, train_dl)
+    trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
 if __name__ == '__main__':
