@@ -584,7 +584,7 @@ class DemoCallback(pl.Callback):
         #### NOTE testing
         log_dict = {
             'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
-            #'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
+            'metrics_report': wandb.Html(f'<pre>{met.metrics_report()}</pre>')
         }
         trainer.logger.experiment.log(log_dict, step=trainer.global_step)
         ####
