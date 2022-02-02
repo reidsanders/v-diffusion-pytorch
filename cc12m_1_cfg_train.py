@@ -584,14 +584,14 @@ class DemoCallback(pl.Callback):
         #### NOTE testing
         log_dict = {
             'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
-            'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
+            #'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
         }
         trainer.logger.experiment.log(log_dict, step=trainer.global_step)
         ####
-        #noise = torch.randn([16, 3, 256, 256], device=module.device)
-        #clip_embed = module.clip_model.encode_text(
-            #self.prompts_toks.to(module.device)
-        #)
+        noise = torch.randn([16, 3, 256, 256], device=module.device)
+        clip_embed = module.clip_model.encode_text(
+            self.prompts_toks.to(module.device)
+        )
         #with eval_mode(module):
             #fakes = sample(
                 #module,
