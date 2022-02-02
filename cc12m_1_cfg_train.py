@@ -348,16 +348,18 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
     for i in trange(steps):
 
         # Get the model output (v, the predicted velocity)
-        with torch.cuda.amp.autocast():
-            x_in = torch.cat([x, x])
-            ts_in = torch.cat([ts, ts])
-            clip_embed = extra_args['clip_embed']
-            clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
-            v_uncond, v_cond = model(
-                x_in, ts_in * t[i], {
-                    'clip_embed': clip_embed
-                }
-            ).float().chunk(2)
+        #with torch.cuda.amp.autocast():
+        ## NOTE removed above cuda line with no changes...
+        x_in = torch.cat([x, x])
+        ts_in = torch.cat([ts, ts])
+        clip_embed = extra_args['clip_embed']
+        clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
+        v_uncond, v_cond = model(
+            x_in, ts_in * t[i], {
+                'clip_embed': clip_embed
+            }
+        ).float().chunk(2)
+
         v = v_uncond + guidance_scale * (v_cond - v_uncond)
 
         # Predict the noise and the denoised image
@@ -690,7 +692,7 @@ def main():
         logger=wandb_logger,
         log_every_n_steps=100,
         max_epochs=2,
-        flush_logs_every_n_steps=100,
+        #flush_logs_every_n_steps=100,
         #resume_from_checkpoint=args.checkpoint,
     )
     #trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
