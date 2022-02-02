@@ -572,7 +572,7 @@ class DemoCallback(pl.Callback):
     @rank_zero_only
     @torch.no_grad()
     def on_batch_end(self, trainer, module):
-        if trainer.global_step == 0 or trainer.global_step % 100 != 0:
+        if trainer.global_step == 0 or trainer.global_step % 1 != 0:
             return
 
         lines = [
@@ -602,9 +602,9 @@ class DemoCallback(pl.Callback):
         log_dict = {
             'demo_grid': wandb.Image(image),
             'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
-            'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
+            #'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
         }
-        trainer.logger.experiment.log_dict(log_dict, step=trainer.global_step)
+        trainer.logger.experiment.log(log_dict, step=trainer.global_step)
 
 
 class ExceptionCallback(pl.Callback):
