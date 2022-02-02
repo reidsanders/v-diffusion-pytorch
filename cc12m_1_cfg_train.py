@@ -690,7 +690,7 @@ def main():
         logger=wandb_logger,
         log_every_n_steps=100,
         max_epochs=2,
-        flush_logs_every_n_steps=100,
+        #flush_logs_every_n_steps=100,
         #resume_from_checkpoint=args.checkpoint,
     )
     #trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
