@@ -696,10 +696,10 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
-        #tpu_cores=8,
+        tpu_cores=8,
         num_nodes=1,
         #strategy='ddp',
-        precision=32,
+        precision=16,
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
         log_every_n_steps=1000,
