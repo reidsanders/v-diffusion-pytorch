@@ -700,7 +700,7 @@ def main():
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
-        max_epochs=2,
+        max_epochs=1,
         #flush_logs_every_n_steps=100,
         #resume_from_checkpoint=args.checkpoint,
     )
