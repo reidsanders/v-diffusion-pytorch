@@ -13,6 +13,7 @@ from torch.nn import functional as F
 from torchvision import transforms
 from torchvision.transforms import functional as TF
 from tqdm import trange
+import re
 
 from CLIP import clip
 from diffusion import get_model, get_models, sampling, utils
@@ -84,7 +85,10 @@ def main():
         model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
     except RuntimeError:
         print("Runtime error loading state dict, Falling back to lightning")
-        model.load_state_dict(torch.load(checkpoint, map_location='cpu')["state_dict"])
+        import ipdb; ipdb.set_trace()
+        checkpoint_loaded = torch.load(checkpoint, map_location='cpu')
+        checkpoint_replaced = {re.sub('model.(.*)', '\1', key):value for (key,value) in checkpoint_loaded}
+        model.load_state_dict(checkpoint_replaced)
 
     if device.type == 'cuda':
         model = model.half()
