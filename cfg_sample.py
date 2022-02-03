@@ -85,10 +85,10 @@ def main():
         model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
     except RuntimeError:
         print("Runtime error loading state dict, Falling back to lightning")
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         checkpoint_loaded = torch.load(checkpoint, map_location='cpu')
-        checkpoint_replaced = {re.sub('model.(.*)', '\1', key):value for (key,value) in checkpoint_loaded}
-        model.load_state_dict(checkpoint_replaced)
+        checkpoint_loaded["state_dict"] = {re.sub('model.(.*)', '\1', key):value for (key,value) in checkpoint_loaded["state_dict"]}
+        model.load_state_dict(checkpoint_loaded)
 
     if device.type == 'cuda':
         model = model.half()
