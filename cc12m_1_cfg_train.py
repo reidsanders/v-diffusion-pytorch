@@ -343,27 +343,26 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
     # Create the noise schedule
     t = torch.linspace(1, 0, steps + 1)[:-1]
     alphas, sigmas = get_alphas_sigmas(t)
-    return alphas
     
-    ### TODO temp commented out
-    ## The sampling loop
-    #for i in trange(steps):
+    # The sampling loop
+    for i in trange(steps):
 
-        ## Get the model output (v, the predicted velocity)
-        ##with torch.cuda.amp.autocast():
-        ### NOTE removed above cuda line with no changes...
-        #x_in = torch.cat([x, x])
-        #ts_in = torch.cat([ts, ts])
-        #clip_embed = extra_args['clip_embed']
-        #clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
-        #v_uncond, v_cond = model(
-            #x_in, ts_in * t[i], {
-                #'clip_embed': clip_embed
-            #}
-        #).float().chunk(2)
+        # Get the model output (v, the predicted velocity)
+        #with torch.cuda.amp.autocast():
+        ## NOTE removed above cuda line with no changes...
+        x_in = torch.cat([x, x])
+        ts_in = torch.cat([ts, ts])
+        clip_embed = extra_args['clip_embed']
+        clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
+        v_uncond, v_cond = model(
+            x_in, ts_in * t[i], {
+                'clip_embed': clip_embed
+            }
+        ).float().chunk(2)
 
-        #v = v_uncond + guidance_scale * (v_cond - v_uncond)
-
+        v = v_uncond + guidance_scale * (v_cond - v_uncond)
+        
+        ## TODO temp commented out
         ## Predict the noise and the denoised image
         #pred = x * alphas[i] - v * sigmas[i]
         #eps = x * sigmas[i] + v * alphas[i]
@@ -385,7 +384,8 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
             #if eta:
                 #x += torch.randn_like(x) * ddim_sigma
 
-    ## If we are on the last timestep, output the denoised image
+    # If we are on the last timestep, output the denoised image
+    return alphas
     #return pred
 
 
