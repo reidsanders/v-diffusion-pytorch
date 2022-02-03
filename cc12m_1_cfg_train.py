@@ -702,8 +702,8 @@ def main():
         precision=16,
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
-        log_every_n_steps=1000,
-        max_epochs=1,
+        log_every_n_steps=2000,
+        max_epochs=10,
         #flush_logs_every_n_steps=100,
         #resume_from_checkpoint=args.checkpoint,
     )
