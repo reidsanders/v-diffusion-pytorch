@@ -80,7 +80,12 @@ def main():
     checkpoint = args.checkpoint
     if not checkpoint:
         checkpoint = MODULE_DIR / f'checkpoints/{args.model}.pth'
-    model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
+    try:
+        model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
+    except RuntimeError:
+        print("Runtime error loading state dict, Falling back to lightning")
+        model.load_state_dict(torch.load(checkpoint, map_location='cpu')["state_dict"])
+
     if device.type == 'cuda':
         model = model.half()
     model = model.to(device).eval().requires_grad_(False)
