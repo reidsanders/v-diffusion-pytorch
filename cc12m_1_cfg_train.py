@@ -351,15 +351,15 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
         #with torch.cuda.amp.autocast():
         ## NOTE removed above cuda line with no changes...
         x_in = torch.cat([x, x])
-        #####
         ts_in = torch.cat([ts, ts])
         clip_embed = extra_args['clip_embed']
         clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
-        #v_uncond, v_cond = model(
-            #x_in, ts_in * t[i], {
-                #'clip_embed': clip_embed
-            #}
-        #).float().chunk(2)
+        ####
+        v_uncond, v_cond = model(
+            x_in, ts_in * t[i], {
+                'clip_embed': clip_embed
+            }
+        )#.float().chunk(2)
         #####
 
         #v = v_uncond + guidance_scale * (v_cond - v_uncond)
