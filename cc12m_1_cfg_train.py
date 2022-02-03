@@ -641,6 +641,7 @@ def main():
         help='load checkpoint file path'
     )
     args = p.parse_args()
+    print(f"Starting train on {args.train_set}")
     ### See https://github.com/wandb/client/issues/1994
     #os.environ['WANDB_CONSOLE'] = 'off'
     wandb.require(experiment="service")
