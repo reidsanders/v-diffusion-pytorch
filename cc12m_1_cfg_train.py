@@ -359,36 +359,36 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
             x_in, ts_in * t[i], {
                 'clip_embed': clip_embed
             }
-        )#.float().chunk(2)
+        ).float().chunk(2)
         #####
 
-        #v = v_uncond + guidance_scale * (v_cond - v_uncond)
+        v = v_uncond + guidance_scale * (v_cond - v_uncond)
         
-        ## TODO temp commented out
-        ## Predict the noise and the denoised image
-        #pred = x * alphas[i] - v * sigmas[i]
-        #eps = x * sigmas[i] + v * alphas[i]
+        # TODO temp commented out
+        # Predict the noise and the denoised image
+        pred = x * alphas[i] - v * sigmas[i]
+        eps = x * sigmas[i] + v * alphas[i]
 
-        ## If we are not on the last timestep, compute the noisy image for the
-        ## next timestep.
-        #if i < steps - 1:
-            ## If eta > 0, adjust the scaling factor for the predicted noise
-            ## downward according to the amount of additional noise to add
-            #ddim_sigma = eta * (sigmas[i + 1]**2 / sigmas[i]**2).sqrt() * \
-                #(1 - alphas[i]**2 / alphas[i + 1]**2).sqrt()
-            #adjusted_sigma = (sigmas[i + 1]**2 - ddim_sigma**2).sqrt()
+        # If we are not on the last timestep, compute the noisy image for the
+        # next timestep.
+        if i < steps - 1:
+            # If eta > 0, adjust the scaling factor for the predicted noise
+            # downward according to the amount of additional noise to add
+            ddim_sigma = eta * (sigmas[i + 1]**2 / sigmas[i]**2).sqrt() * \
+                (1 - alphas[i]**2 / alphas[i + 1]**2).sqrt()
+            adjusted_sigma = (sigmas[i + 1]**2 - ddim_sigma**2).sqrt()
 
-            ## Recombine the predicted noise and predicted denoised image in the
-            ## correct proportions for the next step
-            #x = pred * alphas[i + 1] + eps * adjusted_sigma
+            # Recombine the predicted noise and predicted denoised image in the
+            # correct proportions for the next step
+            x = pred * alphas[i + 1] + eps * adjusted_sigma
 
-            ## Add the correct amount of fresh noise
-            #if eta:
-                #x += torch.randn_like(x) * ddim_sigma
+            # Add the correct amount of fresh noise
+            if eta:
+                x += torch.randn_like(x) * ddim_sigma
 
     # If we are on the last timestep, output the denoised image
-    return alphas
-    #return pred
+    #return alphas
+    return pred
 
 
 class TokenizerWrapper:
@@ -695,7 +695,7 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
-        tpu_cores=8,
+        #tpu_cores=8,
         num_nodes=1,
         #strategy='ddp',
         precision='bf16',
