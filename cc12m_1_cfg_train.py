@@ -356,6 +356,7 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
         ts_in = torch.cat([ts, ts])
         clip_embed = extra_args['clip_embed']
         clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
+        ### NOTE This concat seems to make the dimensions wrong...
         ####
         v_uncond, v_cond = model(
             x_in, ts_in * t[i], clip_embed
@@ -364,7 +365,6 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
 
         v = v_uncond + guidance_scale * (v_cond - v_uncond)
         
-        # TODO temp commented out
         # Predict the noise and the denoised image
         pred = x * alphas[i] - v * sigmas[i]
         eps = x * sigmas[i] + v * alphas[i]
@@ -576,6 +576,7 @@ class DemoCallback(pl.Callback):
     @rank_zero_only
     @torch.no_grad()
     def on_batch_end(self, trainer, module):
+        return ### TODO disable
         if trainer.global_step == 0 or trainer.global_step % 1 != 0:
             return
 
@@ -690,7 +691,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project='kat-diffusion')
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(
-        every_n_train_steps=1000, save_top_k=-1
+        every_n_train_steps=10000, save_top_k=-1
     )
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     exc_callback = ExceptionCallback()
@@ -701,7 +702,7 @@ def main():
         precision=32,
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
-        log_every_n_steps=100,
+        log_every_n_steps=1000,
         max_epochs=1,
         #flush_logs_every_n_steps=100,
         #resume_from_checkpoint=args.checkpoint,
