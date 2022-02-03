@@ -322,6 +322,7 @@ class DiffusionModel(nn.Module):
 
     def forward(self, inputx, t, clip_embed):
         ## TODO bug here?
+        print(f"forward input:\n{inputx}\n")
         clip_embed = F.normalize(clip_embed, dim=-1) * \
                                  clip_embed.shape[-1]**0.5
         mapping_timestep_embed = self.mapping_timestep_embed(t[:, None])
