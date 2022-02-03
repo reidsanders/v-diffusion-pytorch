@@ -354,7 +354,7 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
         #####
         ts_in = torch.cat([ts, ts])
         clip_embed = extra_args['clip_embed']
-        #clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
+        clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
         #v_uncond, v_cond = model(
             #x_in, ts_in * t[i], {
                 #'clip_embed': clip_embed
