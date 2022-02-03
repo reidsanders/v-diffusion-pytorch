@@ -699,7 +699,7 @@ def main():
         tpu_cores=8,
         num_nodes=1,
         #strategy='ddp',
-        precision=16,
+        precision='bf16',
         callbacks=[ckpt_callback, demo_callback, exc_callback],
         logger=wandb_logger,
         log_every_n_steps=2000,
