@@ -82,8 +82,8 @@ class ResidualBlock(nn.Module):
         self.main = nn.Sequential(*main)
         self.skip = skip if skip else nn.Identity()
 
-    def forward(self, inputx):
-        return self.main(inputx) + self.skip(inputx)
+    def forward(self, input):
+        return self.main(input) + self.skip(input)
 
 
 class ResLinearBlock(ResidualBlock):
@@ -105,10 +105,10 @@ class Modulation2d(nn.Module):
         self.state = state
         self.layer = nn.Linear(feats_in, c_out * 2, bias=False)
 
-    def forward(self, inputx):
+    def forward(self, input):
         scales, shifts = self.layer(self.state['cond']).chunk(2, dim=-1)
         return torch.addcmul(
-            shifts[..., None, None], inputx, scales[..., None, None] + 1
+            shifts[..., None, None], input, scales[..., None, None] + 1
         )
 
 
@@ -137,8 +137,8 @@ class SkipBlock(nn.Module):
         self.main = nn.Sequential(*main)
         self.skip = skip if skip else nn.Identity()
 
-    def forward(self, inputx):
-        return torch.cat([self.main(inputx), self.skip(inputx)], dim=1)
+    def forward(self, input):
+        return torch.cat([self.main(input), self.skip(input)], dim=1)
 
 
 class FourierFeatures(nn.Module):
@@ -151,8 +151,8 @@ class FourierFeatures(nn.Module):
         self.weight.requires_grad_(False)
         # self.register_buffer('weight', torch.randn([out_features // 2, in_features]) * std)
 
-    def forward(self, inputx):
-        f = 2 * math.pi * inputx @ self.weight.T
+    def forward(self, input):
+        f = 2 * math.pi * input @ self.weight.T
         return torch.cat([f.cos(), f.sin()], dim=-1)
 
 
@@ -166,20 +166,20 @@ class SelfAttention2d(nn.Module):
         self.out_proj = nn.Conv2d(c_in, c_in, 1)
         self.dropout = nn.Identity()  # nn.Dropout2d(dropout_rate, inplace=True)
 
-    def forward(self, inputx):
-        n, c, h, w = inputx.shape
-        qkv = self.qkv_proj(self.norm(inputx))
+    def forward(self, input):
+        n, c, h, w = input.shape
+        qkv = self.qkv_proj(self.norm(input))
         qkv = qkv.view([n, self.n_head * 3, c // self.n_head,
                         h * w]).transpose(2, 3)
         q, k, v = qkv.chunk(3, dim=1)
         scale = k.shape[3]**-0.25
         att = ((q * scale) @ (k.transpose(2, 3) * scale)).softmax(3)
         y = (att @ v).transpose(2, 3).contiguous().view([n, c, h, w])
-        return inputx + self.dropout(self.out_proj(y))
+        return input + self.dropout(self.out_proj(y))
 
 
-def expand_to_planes(inputx, shape):
-    return inputx[..., None, None].repeat([1, 1, shape[2], shape[3]])
+def expand_to_planes(input, shape):
+    return input[..., None, None].repeat([1, 1, shape[2], shape[3]])
 
 
 class DiffusionModel(nn.Module):
@@ -320,9 +320,9 @@ class DiffusionModel(nn.Module):
             for param in self.net.parameters():
                 param *= 0.5**0.5
 
-    def forward(self, inputx, t, clip_embed):
+    def forward(self, input, t, clip_embed):
         ## TODO bug here?
-        print(f"forward input:\n{inputx}\n")
+        print(f"forward input:\n{clip_embed}\n")
         clip_embed = F.normalize(clip_embed, dim=-1) * \
                                  clip_embed.shape[-1]**0.5
         mapping_timestep_embed = self.mapping_timestep_embed(t[:, None])
@@ -330,9 +330,9 @@ class DiffusionModel(nn.Module):
             torch.cat([clip_embed, mapping_timestep_embed], dim=1)
         )
         timestep_embed = expand_to_planes(
-            self.timestep_embed(t[:, None]), inputx.shape
+            self.timestep_embed(t[:, None]), input.shape
         )
-        out = self.net(torch.cat([inputx, timestep_embed], dim=1))
+        out = self.net(torch.cat([input, timestep_embed], dim=1))
         self.state.clear()
         return out
 
