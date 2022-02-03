@@ -14,6 +14,7 @@ from torchvision import transforms
 from torchvision.transforms import functional as TF
 from tqdm import trange
 import re
+from copy import deepcopy
 
 from CLIP import clip
 from diffusion import get_model, get_models, sampling, utils
@@ -84,11 +85,19 @@ def main():
     try:
         model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
     except RuntimeError:
-        print("Runtime error loading state dict, Falling back to lightning")
-        #import ipdb; ipdb.set_trace()
+        print("Runtime error loading state dict, Trying lightning naming schema")
         checkpoint_loaded = torch.load(checkpoint, map_location='cpu')
-        checkpoint_loaded["state_dict"] = {re.sub('model.(.*)', '\1', key):value for (key,value) in checkpoint_loaded["state_dict"]}
-        model.load_state_dict(checkpoint_loaded)
+        checkpoint_modified = {re.sub('model.(.*)', r'\1', key):value for (key,value) in checkpoint_loaded["state_dict"].items()}
+
+        checkpoint_example = MODULE_DIR / f'checkpoints/{args.model}.pth'
+        checkpoint_example_keys = torch.load(checkpoint_example, map_location='cpu').keys()
+        checkpoint_modified = {key:value for (key,value) in checkpoint_modified.items() if key in checkpoint_example_keys}
+        try:
+            model.load_state_dict(checkpoint_modified)
+        except RuntimeError:
+            import ipdb; ipdb.set_trace()
+
+
 
     if device.type == 'cuda':
         model = model.half()
