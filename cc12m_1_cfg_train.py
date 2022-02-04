@@ -606,17 +606,32 @@ class DemoCallback(pl.Callback):
                 guidance_scale=3.
             )
 
-        #grid = utils.make_grid(fakes, 4, padding=0).cpu()
-        #image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
-        #filename = f'demo_{trainer.global_step:08}.png'
-        #image.save(filename)
-        #log_dict = {
-            #'demo_grid': wandb.Image(image),
-            #'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
-            ##'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
-        #}
-        #trainer.logger.experiment.log(log_dict, step=trainer.global_step)
+        grid = utils.make_grid(fakes, 4, padding=0).cpu()
+        image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
+        filename = f'demo_{trainer.global_step:08}.png'
+        image.save(filename)
+        log_dict = {
+            'demo_grid': wandb.Image(image),
+            'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
+            #'metrics_report': wandb.Html(f'<pre>{metrics_report}</pre>')
+        }
+        trainer.logger.experiment.log(log_dict, step=trainer.global_step)
 
+class MetricsCallback(pl.Callback):
+    def __init__(self, prompts):
+        super().__init__()
+        self.prompts = prompts[:8]
+
+    @rank_zero_only
+    @torch.no_grad()
+    def on_batch_end(self, trainer, module):
+        if trainer.global_step == 0 or trainer.global_step % 1000 != 0:
+            return
+        log_dict = {
+            'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
+            'metrics_report': wandb.Html(f'<pre>{met.metrics_report()}</pre>')
+        }
+        trainer.logger.experiment.log(log_dict, step=trainer.global_step)
 
 class ExceptionCallback(pl.Callback):
     def on_exception(self, trainer, module, err):
@@ -694,13 +709,14 @@ def main():
         every_n_train_steps=10000, save_top_k=-1
     )
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
+    metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
     trainer = pl.Trainer(
         tpu_cores=8,
         num_nodes=1,
         #strategy='ddp',
         precision='bf16',
-        callbacks=[ckpt_callback, demo_callback, exc_callback],
+        callbacks=[ckpt_callback, demo_callback, exc_callback, metrics_callback],
         logger=wandb_logger,
         log_every_n_steps=2000,
         max_epochs=10,
