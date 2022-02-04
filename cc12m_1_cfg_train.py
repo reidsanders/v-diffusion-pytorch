@@ -586,13 +586,6 @@ class DemoCallback(pl.Callback):
         ]
         lines_text = '\n'.join(lines)
         Path('demo_prompts_out.txt').write_text(lines_text)
-        #### NOTE testing
-        log_dict = {
-            'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
-            'metrics_report': wandb.Html(f'<pre>{met.metrics_report()}</pre>')
-        }
-        trainer.logger.experiment.log(log_dict, step=trainer.global_step)
-        ####
         noise = torch.randn([16, 3, 256, 256], device=module.device)
         clip_embed = module.clip_model.encode_text(
             self.prompts_toks.to(module.device)
@@ -620,7 +613,6 @@ class DemoCallback(pl.Callback):
 class MetricsCallback(pl.Callback):
     def __init__(self, prompts):
         super().__init__()
-        self.prompts = prompts[:8]
 
     @rank_zero_only
     @torch.no_grad()
@@ -628,7 +620,6 @@ class MetricsCallback(pl.Callback):
         if trainer.global_step == 0 or trainer.global_step % 1000 != 0:
             return
         log_dict = {
-            'prompts': wandb.Html(f'<pre>{lines_text}</pre>'),
             'metrics_report': wandb.Html(f'<pre>{met.metrics_report()}</pre>')
         }
         trainer.logger.experiment.log(log_dict, step=trainer.global_step)
