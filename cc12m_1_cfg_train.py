@@ -345,7 +345,7 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
     # Create the noise schedule
     t = torch.linspace(1, 0, steps + 1)[:-1]
     alphas, sigmas = get_alphas_sigmas(t)
-    
+
     # The sampling loop
     for i in trange(steps):
 
@@ -358,13 +358,12 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.):
         clip_embed = torch.cat([clip_embed, torch.zeros_like(clip_embed)])
         ### NOTE This concat seems to make the dimensions wrong...
         ####
-        v_uncond, v_cond = model(
-            x_in, ts_in * t[i], clip_embed
-        ).float().chunk(2)
+        v_uncond, v_cond = model(x_in, ts_in * t[i],
+                                 clip_embed).float().chunk(2)
         #####
 
         v = v_uncond + guidance_scale * (v_cond - v_uncond)
-        
+
         # Predict the noise and the denoised image
         pred = x * alphas[i] - v * sigmas[i]
         eps = x * sigmas[i] + v * alphas[i]
@@ -421,9 +420,7 @@ class JsonCaptions(data.Dataset):
         with open(self.indexfile, "r") as f:
             self.dataindex = json.loads(f.read())
             self.data = self.dataindex["data"]
-        print(
-            f'Captions Data: found {len(self.data)} images.', file=sys.stderr
-        )
+        print(f'Captions Data: found {len(self.data)} images.', file=sys.stderr)
 
     def __len__(self):
         return len(self.data)
@@ -525,7 +522,9 @@ class LightningDiffusion(pl.LightningModule):
         return self.model_ema(*args, **kwargs)
 
     def configure_optimizers(self):
-        return optim.AdamW(self.model.parameters(), lr=3e-5, eps=1e-5, weight_decay=0.01)
+        return optim.AdamW(
+            self.model.parameters(), lr=3e-5, eps=1e-5, weight_decay=0.01
+        )
         # return optim.AdamW(self.model.parameters(), lr=5e-6, weight_decay=0.01)
 
     def eval_batch(self, batch):
@@ -576,7 +575,7 @@ class DemoCallback(pl.Callback):
     @rank_zero_only
     @torch.no_grad()
     def on_batch_end(self, trainer, module):
-        return ### TODO disable
+        return  ### TODO disable
         if trainer.global_step == 0 or trainer.global_step % 1 != 0:
             return
 
@@ -610,6 +609,7 @@ class DemoCallback(pl.Callback):
         }
         trainer.logger.experiment.log(log_dict, step=trainer.global_step)
 
+
 class MetricsCallback(pl.Callback):
     def __init__(self, prompts):
         super().__init__()
@@ -623,6 +623,7 @@ class MetricsCallback(pl.Callback):
             'metrics_report': wandb.Html(f'<pre>{met.metrics_report()}</pre>')
         }
         trainer.logger.experiment.log(log_dict, step=trainer.global_step)
+
 
 class ExceptionCallback(pl.Callback):
     def on_exception(self, trainer, module, err):
@@ -651,23 +652,35 @@ def main():
         required=False,
         help='load checkpoint file path'
     )
+    p.add_argument(
+        '--batchsize',
+        type=int,
+        default=2,
+        required=False,
+        help='batchsize for training'
+    )
+    p.add_argument(
+        '--imgsize',
+        type=int,
+        default=256,
+        required=False,
+        help='Image size in pixels. Assumes square image'
+    )
     args = p.parse_args()
     print(f"Starting train on {args.train_set}")
     ### See https://github.com/wandb/client/issues/1994
     #os.environ['WANDB_CONSOLE'] = 'off'
     wandb.require(experiment="service")
-    batch_size = 2
-    size = 256
 
     tf = transforms.Compose(
         [
             ToMode('RGB'),
             transforms.Resize(
-                size,
+                args.imgsize,
                 #interpolation=transforms.InterpolationMode.LANCZOS
                 interpolation=transforms.InterpolationMode.NEAREST
             ),
-            transforms.CenterCrop(size),
+            transforms.CenterCrop(args.imgsize),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5]),
         ]
@@ -681,7 +694,7 @@ def main():
     train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
     train_dl = data.DataLoader(
         train_set,
-        batch_size,
+        args.batchsize,
         shuffle=True,
         worker_init_fn=worker_init_fn,
         num_workers=96,
@@ -707,7 +720,9 @@ def main():
         num_nodes=1,
         #strategy='ddp',
         precision='bf16',
-        callbacks=[ckpt_callback, demo_callback, exc_callback, metrics_callback],
+        callbacks=[
+            ckpt_callback, demo_callback, exc_callback, metrics_callback
+        ],
         logger=wandb_logger,
         log_every_n_steps=2000,
         max_epochs=10,
