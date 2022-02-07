@@ -450,6 +450,48 @@ class JsonCaptions(data.Dataset):
             # return self[random.randrange(len(self))]
             raise
 
+class JsonCaptions2(data.Dataset):
+    def __init__(self, root, transform=None, target_transform=None):
+        self.root = root
+        self.indexfile = Path(root) / 'index.json'
+        self.transform = transform
+        self.target_transform = target_transform
+        with open(self.indexfile, "r") as f:
+            self.data = json.loads(f.read())
+            self.data = self.dataindex["data"]
+        print(f'Captions Data: found {len(self.data)} images.', file=sys.stderr)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        try:
+            try:
+                datapoint = self.data[index]
+                text = datapoint["text"]
+                image = Image.open(Path(self.root) / datapoint["filename"])
+                font = Image.open(Path(self.root) / datapoint["font"])
+                text = f"<<<FONT:{font}>>> {text}"
+
+                if self.transform is not None:
+                    image = self.transform(image)
+                if self.target_transform is not None:
+                    text = self.target_transform(text)
+                return image, text
+            except (
+                OSError, ValueError, Image.DecompressionBombError,
+                Image.UnidentifiedImageError
+            ) as err:
+                print(
+                    f'Bad image, skipping: {index} {self.stems[index]} '
+                    f'{type(err).__name__}: {err!s}',
+                    file=sys.stderr
+                )
+                return self[random.randrange(len(self))]
+        except Exception as err:
+            print(f'{type(err).__name__}: {err!s}', file=sys.stderr)
+            # return self[random.randrange(len(self))]
+            raise
 
 class ConceptualCaptions(data.Dataset):
     def __init__(self, root, stems_list, transform=None, target_transform=None):
@@ -666,6 +708,13 @@ def main():
         required=False,
         help='Image size in pixels. Assumes square image'
     )
+    p.add_argument(
+        '--dataset_mode',
+        type=str,
+        default="json",
+        required=False,
+        help='Dataset mode to use: "conceptual, json, json2"'
+    )
     args = p.parse_args()
     print(f"Starting train on {args.train_set}")
     ### See https://github.com/wandb/client/issues/1994
@@ -690,8 +739,14 @@ def main():
     def ttf(caption):
         return tok_wrap(caption).squeeze(0)
 
-    #train_set = ConceptualCaptions(args.train_set, 'stems.txt', transform=tf, target_transform=ttf)
-    train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
+    ## Choose dataset loader mode.
+    if args.dataset_mode == "conceptual":
+        train_set = ConceptualCaptions(args.train_set, 'stems.txt', transform=tf, target_transform=ttf)
+    elif args.dataset_mode == "json":
+        train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
+    elif args.dataset_mode == "json2":
+        train_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
+
     train_dl = data.DataLoader(
         train_set,
         args.batchsize,
@@ -710,7 +765,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project='kat-diffusion')
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(
-        every_n_train_steps=10000, save_top_k=-1
+        every_n_train_steps=20000, save_top_k=-1
     )
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     metrics_callback = MetricsCallback(demo_prompts)
