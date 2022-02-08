@@ -13,6 +13,7 @@ cp ./.inputrc ~/
 
 printf 'export XRT_TPU_CONFIG="localservice;0;localhost:51011"' >> ~/.bashrc
 printf 'export PT_XLA_DEBUG=1' >> ~/.bashrc
+printf 'export XLA_USE_BF16=1' >> ~/.bashrc
 
 pip install -r ../requirements.txt
 pip3 install torch_xla[tpuvm] -f https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-1.10-cp38-cp38-linux_x86_64.whl ## TODO try setting in requrements.txt

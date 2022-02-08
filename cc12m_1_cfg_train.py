@@ -457,7 +457,7 @@ class JsonCaptions2(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         with open(self.indexfile, "r") as f:
-            self.data = json.loads(f.read())
+            self.dataindex = json.loads(f.read())
             self.data = self.dataindex["data"]
         print(f'Captions Data: found {len(self.data)} images.', file=sys.stderr)
 
