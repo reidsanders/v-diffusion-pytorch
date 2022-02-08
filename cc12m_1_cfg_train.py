@@ -470,7 +470,7 @@ class JsonCaptions2(data.Dataset):
                 datapoint = self.data[index]
                 text = datapoint["text"]
                 image = Image.open(Path(self.root) / datapoint["filename"])
-                font = Image.open(Path(self.root) / datapoint["font"])
+                font = datapoint["font"]
                 text = f"<<<FONT:{font}>>> {text}"
 
                 if self.transform is not None:
