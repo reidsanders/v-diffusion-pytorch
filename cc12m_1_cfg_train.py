@@ -765,7 +765,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project='kat-diffusion')
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(
-        every_n_train_steps=20000, save_top_k=-1
+        every_n_train_steps=1, save_top_k=2, monitor='train/loss'
     )
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     metrics_callback = MetricsCallback(demo_prompts)
@@ -779,7 +779,7 @@ def main():
             ckpt_callback, demo_callback, exc_callback, metrics_callback
         ],
         logger=wandb_logger,
-        log_every_n_steps=2000,
+        log_every_n_steps=1,
         max_epochs=10,
         #flush_logs_every_n_steps=100,
         #resume_from_checkpoint=args.checkpoint,
