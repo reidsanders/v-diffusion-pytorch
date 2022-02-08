@@ -483,7 +483,7 @@ class JsonCaptions2(data.Dataset):
                 Image.UnidentifiedImageError
             ) as err:
                 print(
-                    f'Bad image, skipping: {index} {self.stems[index]} '
+                    f'Bad image, skipping: {index} {image} '
                     f'{type(err).__name__}: {err!s}',
                     file=sys.stderr
                 )
