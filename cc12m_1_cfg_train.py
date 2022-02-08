@@ -711,7 +711,7 @@ def main():
     p.add_argument(
         '--dataset_mode',
         type=str,
-        default="json",
+        default="json2",
         required=False,
         help='Dataset mode to use: "conceptual, json, json2"'
     )
