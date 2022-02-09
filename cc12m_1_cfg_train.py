@@ -715,8 +715,10 @@ def main():
         required=False,
         help='Dataset mode to use: "conceptual, json, json2"'
     )
+    ### TODO     parser = Trainer.add_argparse_args(parser)
     args = p.parse_args()
     print(f"Starting train on {args.train_set}")
+
     ### See https://github.com/wandb/client/issues/1994
     #os.environ['WANDB_CONSOLE'] = 'off'
     wandb.require(experiment="service")
@@ -770,6 +772,7 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
+    ### TODO     trainer = Trainer.from_argparse_args(args)
     trainer = pl.Trainer(
         tpu_cores=8,
         num_nodes=1,
@@ -781,11 +784,10 @@ def main():
         logger=wandb_logger,
         log_every_n_steps=1000,
         max_epochs=10,
+        accumulate_grad_batches=4,
         #flush_logs_every_n_steps=100,
-        #resume_from_checkpoint=args.checkpoint,
     )
-    #trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
-    trainer.fit(model, train_dl)
+    trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
 if __name__ == '__main__':
