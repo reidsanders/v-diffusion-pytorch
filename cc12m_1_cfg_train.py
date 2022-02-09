@@ -709,7 +709,7 @@ def main():
         help='Image size in pixels. Assumes square image'
     )
     p.add_argument(
-        '--dataset_mode',
+        '--dataset-mode',
         type=str,
         default="json2",
         required=False,
