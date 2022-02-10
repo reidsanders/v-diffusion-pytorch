@@ -784,7 +784,7 @@ def main():
         logger=wandb_logger,
         log_every_n_steps=1000,
         max_epochs=10,
-        accumulate_grad_batches=4,
+        accumulate_grad_batches=1,
         #flush_logs_every_n_steps=100,
     )
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
