@@ -83,7 +83,7 @@ def main():
         help="the timestep to start at (used with init images)",
     )
     p.add_argument("--steps", type=int, default=500, help="the number of timesteps")
-    p.add_argument("--outdir", type=str, default="./", help="Directory to save output files to")
+    p.add_argument("--outdir", type=str, default="generated-images", help="Directory to save output files to")
     args = p.parse_args()
 
     if args.device:
