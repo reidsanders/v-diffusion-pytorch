@@ -512,7 +512,7 @@ class DanbooruCaptions(data.Dataset):
             try:
                 datapoint = self.data[index]
                 image = Image.open(Path(self.root) / datapoint["filename"])
-                tags = [v['name'] for k,v in datapoint['tags'].items()]
+                tags = [example['name'] for example in datapoint['tags']]
                 text = f"A drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
                 print(f"Text example:\n {text}")
                 if self.transform is not None:
