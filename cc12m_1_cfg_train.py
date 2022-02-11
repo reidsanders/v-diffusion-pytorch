@@ -661,7 +661,6 @@ class DemoCallback(pl.Callback):
     @rank_zero_only
     @torch.no_grad()
     def on_batch_end(self, trainer, module):
-        return  ### TODO disable
         if trainer.global_step == 0 or trainer.global_step % 1 != 0:
             return
 
@@ -807,7 +806,7 @@ def main():
         num_nodes=1,
         # strategy='ddp',
         precision="bf16",
-        callbacks=[ckpt_callback, demo_callback, exc_callback, metrics_callback],
+        callbacks=[ckpt_callback, exc_callback, metrics_callback],
         logger=wandb_logger,
         log_every_n_steps=1000,
         max_epochs=10,
