@@ -321,8 +321,6 @@ class DiffusionModel(nn.Module):
                 param *= 0.5**0.5
 
     def forward(self, input, t, clip_embed):
-        ## TODO bug here?
-        #print(f"forward input:\n{clip_embed}\n")
         clip_embed = F.normalize(clip_embed, dim=-1) * \
                                  clip_embed.shape[-1]**0.5
         mapping_timestep_embed = self.mapping_timestep_embed(t[:, None])
@@ -513,8 +511,8 @@ class DanbooruCaptions(data.Dataset):
                 datapoint = self.data[index]
                 image = Image.open(Path(self.root) / datapoint["filename"])
                 tags = [example['name'] for example in datapoint['tags']]
-                text = f"A drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
-                print(f"Text example:\n {text}")
+                text = f"A manga style drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
+                #TODO log this text?
                 if self.transform is not None:
                     image = self.transform(image)
                 if self.target_transform is not None:
