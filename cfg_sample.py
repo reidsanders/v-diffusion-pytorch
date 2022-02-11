@@ -83,6 +83,7 @@ def main():
         help="the timestep to start at (used with init images)",
     )
     p.add_argument("--steps", type=int, default=500, help="the number of timesteps")
+    p.add_argument("--outdir", type=str, default="./", help="Directory to save output files to")
     args = p.parse_args()
 
     if args.device:
@@ -182,7 +183,7 @@ def main():
             cur_batch_size = min(n - i, batch_size)
             outs = run(x[i : i + cur_batch_size], steps)
             for j, out in enumerate(outs):
-                utils.to_pil_image(out).save(f"out_{i + j:05}.png")
+                utils.to_pil_image(out).save(Path(args.outdir, f"out_{i + j:05}.png"))
 
     try:
         run_all(args.n, args.batch_size)
