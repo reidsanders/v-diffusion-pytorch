@@ -493,6 +493,48 @@ class JsonCaptions2(data.Dataset):
             # return self[random.randrange(len(self))]
             raise
 
+class DanbooruCaptions(data.Dataset):
+    def __init__(self, root, transform=None, target_transform=None):
+        self.root = root
+        self.indexfile = Path(root) / 'index.json'
+        self.transform = transform
+        self.target_transform = target_transform
+        with open(self.indexfile, "r") as f:
+            self.dataindex = json.loads(f.read())
+            self.data = self.dataindex["data"]
+        print(f'Captions Data: found {len(self.data)} images.', file=sys.stderr)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        try:
+            try:
+                datapoint = self.data[index]
+                image = Image.open(Path(self.root) / datapoint["filename"])
+                tags = [v['name'] for k,v in datapoint['tags'].items()]
+                text = f"A drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
+                print(f"Text example:\n {text}")
+                if self.transform is not None:
+                    image = self.transform(image)
+                if self.target_transform is not None:
+                    text = self.target_transform(text)
+                return image, text
+            except (
+                OSError, ValueError, Image.DecompressionBombError,
+                Image.UnidentifiedImageError
+            ) as err:
+                print(
+                    f'Bad image, skipping: {index} {image} '
+                    f'{type(err).__name__}: {err!s}',
+                    file=sys.stderr
+                )
+                return self[random.randrange(len(self))]
+        except Exception as err:
+            print(f'{type(err).__name__}: {err!s}', file=sys.stderr)
+            # return self[random.randrange(len(self))]
+            raise
+
 class ConceptualCaptions(data.Dataset):
     def __init__(self, root, stems_list, transform=None, target_transform=None):
         self.images_root = Path(root) / 'images'
@@ -713,9 +755,9 @@ def main():
         type=str,
         default="json2",
         required=False,
-        help='Dataset mode to use: "conceptual, json, json2"'
+        help='Dataset mode to use: "conceptual, json, json2, danbooru"'
     )
-    ### TODO     parser = Trainer.add_argparse_args(parser)
+    ### TODO     parser = Trainer.add_argparse_args(parser) to capture all training args
     args = p.parse_args()
     print(f"Starting train on {args.train_set}")
 
@@ -748,6 +790,8 @@ def main():
         train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "json2":
         train_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
+    elif args.dataset_mode == "danbooru":
+        train_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
 
     train_dl = data.DataLoader(
         train_set,
