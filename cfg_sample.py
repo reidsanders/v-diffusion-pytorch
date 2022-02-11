@@ -186,7 +186,7 @@ def main():
                 utils.to_pil_image(out).save(Path(args.outdir, f"out_{i + j:05}.png"))
 
     try:
-        if not Path.is_dir(args.outdir):
+        if not Path.is_dir(Path(args.outdir)):
             Path.mkdir(args.outdir)
         run_all(args.n, args.batch_size)
     except KeyboardInterrupt:
