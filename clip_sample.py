@@ -33,9 +33,7 @@ class MakeCutouts(nn.Module):
         min_size = min(sideX, sideY, self.cut_size)
         cutouts = []
         for _ in range(self.cutn):
-            size = int(
-                torch.rand([]) ** self.cut_pow * (max_size - min_size) + min_size
-            )
+            size = int(torch.rand([]) ** self.cut_pow * (max_size - min_size) + min_size)
             offsetx = torch.randint(0, sideX - size + 1, ())
             offsety = torch.randint(0, sideY - size + 1, ())
             cutout = input[:, :, offsety : offsety + size, offsetx : offsetx + size]
@@ -62,19 +60,13 @@ def parse_prompt(prompt):
 
 def resize_and_center_crop(image, size):
     fac = max(size[0] / image.size[0], size[1] / image.size[1])
-    image = image.resize(
-        (int(fac * image.size[0]), int(fac * image.size[1])), Image.LANCZOS
-    )
+    image = image.resize((int(fac * image.size[0]), int(fac * image.size[1])), Image.LANCZOS)
     return TF.center_crop(image, size[::-1])
 
 
 def main():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    p.add_argument(
-        "prompts", type=str, default=[], nargs="*", help="the text prompts to use"
-    )
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
     p.add_argument(
         "--images",
         type=str,
@@ -98,12 +90,8 @@ def main():
         default=500.0,
         help="the CLIP guidance scale",
     )
-    p.add_argument(
-        "--cutn", type=int, default=16, help="the number of random crops to use"
-    )
-    p.add_argument(
-        "--cut-pow", type=float, default=1.0, help="the random crop size power"
-    )
+    p.add_argument("--cutn", type=int, default=16, help="the number of random crops to use")
+    p.add_argument("--cut-pow", type=float, default=1.0, help="the random crop size power")
     p.add_argument("--device", type=str, help="the device to use")
     p.add_argument(
         "--eta",
@@ -156,9 +144,7 @@ def main():
         mean=[0.48145466, 0.4578275, 0.40821073],
         std=[0.26862954, 0.26130258, 0.27577711],
     )
-    make_cutouts = MakeCutouts(
-        clip_model.visual.input_resolution, args.cutn, args.cut_pow
-    )
+    make_cutouts = MakeCutouts(clip_model.visual.input_resolution, args.cutn, args.cut_pow)
 
     if args.init:
         init = Image.open(utils.fetch(args.init)).convert("RGB")
@@ -169,17 +155,13 @@ def main():
 
     for prompt in args.prompts:
         txt, weight = parse_prompt(prompt)
-        target_embeds.append(
-            clip_model.encode_text(clip.tokenize(txt).to(device)).float()
-        )
+        target_embeds.append(clip_model.encode_text(clip.tokenize(txt).to(device)).float())
         weights.append(weight)
 
     for prompt in args.images:
         path, weight = parse_prompt(prompt)
         img = Image.open(utils.fetch(path)).convert("RGB")
-        img = TF.resize(
-            img, min(side_x, side_y, *img.size), transforms.InterpolationMode.LANCZOS
-        )
+        img = TF.resize(img, min(side_x, side_y, *img.size), transforms.InterpolationMode.LANCZOS)
         batch = make_cutouts(TF.to_tensor(img)[None].to(device))
         embeds = F.normalize(clip_model.encode_image(normalize(batch)).float(), dim=-1)
         target_embeds.append(embeds)
@@ -193,18 +175,14 @@ def main():
         raise RuntimeError("The weights must not sum to 0.")
     weights /= weights.sum().abs()
 
-    clip_embed = F.normalize(
-        target_embeds.mul(weights[:, None]).sum(0, keepdim=True), dim=-1
-    )
+    clip_embed = F.normalize(target_embeds.mul(weights[:, None]).sum(0, keepdim=True), dim=-1)
     clip_embed = clip_embed.repeat([args.n, 1])
 
     torch.manual_seed(args.seed)
 
     def cond_fn(x, t, pred, clip_embed):
         clip_in = normalize(make_cutouts((pred + 1) / 2))
-        image_embeds = clip_model.encode_image(clip_in).view(
-            [args.cutn, x.shape[0], -1]
-        )
+        image_embeds = clip_model.encode_image(clip_in).view([args.cutn, x.shape[0], -1])
         losses = spherical_dist_loss(image_embeds, clip_embed[None])
         loss = losses.mean(0).sum() * args.clip_guidance_scale
         grad = -torch.autograd.grad(loss, x)[0]
@@ -231,9 +209,7 @@ def main():
             x = init * alpha + x * sigma
         for i in trange(0, n, batch_size):
             cur_batch_size = min(n - i, batch_size)
-            outs = run(
-                x[i : i + cur_batch_size], steps, clip_embed[i : i + cur_batch_size]
-            )
+            outs = run(x[i : i + cur_batch_size], steps, clip_embed[i : i + cur_batch_size])
             for j, out in enumerate(outs):
                 utils.to_pil_image(out).save(f"out_{i + j:05}.png")
 

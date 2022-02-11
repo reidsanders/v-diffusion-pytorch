@@ -34,19 +34,13 @@ def parse_prompt(prompt, default_weight=3.0):
 
 def resize_and_center_crop(image, size):
     fac = max(size[0] / image.size[0], size[1] / image.size[1])
-    image = image.resize(
-        (int(fac * image.size[0]), int(fac * image.size[1])), Image.LANCZOS
-    )
+    image = image.resize((int(fac * image.size[0]), int(fac * image.size[1])), Image.LANCZOS)
     return TF.center_crop(image, size[::-1])
 
 
 def main():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    p.add_argument(
-        "prompts", type=str, default=[], nargs="*", help="the text prompts to use"
-    )
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
     p.add_argument(
         "--images",
         type=str,
@@ -110,18 +104,13 @@ def main():
         print("Runtime error loading state dict, Trying lightning naming schema")
         checkpoint_loaded = torch.load(checkpoint, map_location="cpu")
         checkpoint_modified = {
-            re.sub("model.(.*)", r"\1", key): value
-            for (key, value) in checkpoint_loaded["state_dict"].items()
+            re.sub("model.(.*)", r"\1", key): value for (key, value) in checkpoint_loaded["state_dict"].items()
         }
 
         checkpoint_example = MODULE_DIR / f"checkpoints/{args.model}.pth"
-        checkpoint_example_keys = torch.load(
-            checkpoint_example, map_location="cpu"
-        ).keys()
+        checkpoint_example_keys = torch.load(checkpoint_example, map_location="cpu").keys()
         checkpoint_modified = {
-            key: value
-            for (key, value) in checkpoint_modified.items()
-            if key in checkpoint_example_keys
+            key: value for (key, value) in checkpoint_modified.items() if key in checkpoint_example_keys
         }
         try:
             model.load_state_dict(checkpoint_modified)
@@ -151,9 +140,7 @@ def main():
 
     for prompt in args.prompts:
         txt, weight = parse_prompt(prompt)
-        target_embeds.append(
-            clip_model.encode_text(clip.tokenize(txt).to(device)).float()
-        )
+        target_embeds.append(clip_model.encode_text(clip.tokenize(txt).to(device)).float())
         weights.append(weight)
 
     for prompt in args.images:

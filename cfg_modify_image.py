@@ -34,20 +34,14 @@ def parse_prompt(prompt, default_weight=3.0):
 
 def resize_and_center_crop(image, size):
     fac = max(size[0] / image.size[0], size[1] / image.size[1])
-    image = image.resize(
-        (int(fac * image.size[0]), int(fac * image.size[1])), Image.LANCZOS
-    )
+    image = image.resize((int(fac * image.size[0]), int(fac * image.size[1])), Image.LANCZOS)
     return TF.center_crop(image, size[::-1])
 
 
 def main():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("init", type=str, help="the init image")
-    p.add_argument(
-        "prompts", type=str, default=[], nargs="*", help="the text prompts to use"
-    )
+    p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
     p.add_argument(
         "--images",
         type=str,
@@ -58,9 +52,7 @@ def main():
     )
     p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
     p.add_argument("--device", type=str, help="the device to use")
-    p.add_argument(
-        "--max-timestep", "-mt", type=float, default=1.0, help="the maximum timestep"
-    )
+    p.add_argument("--max-timestep", "-mt", type=float, default=1.0, help="the maximum timestep")
     p.add_argument(
         "--model",
         type=str,
@@ -68,9 +60,7 @@ def main():
         choices=["cc12m_1_cfg"],
         help="the model to use",
     )
-    p.add_argument(
-        "--output", "-o", type=str, default="out.png", help="the output filename"
-    )
+    p.add_argument("--output", "-o", type=str, default="out.png", help="the output filename")
     p.add_argument("--size", type=int, nargs=2, help="the output image size")
     p.add_argument("--steps", type=int, default=250, help="the number of timesteps")
     args = p.parse_args()
@@ -109,9 +99,7 @@ def main():
 
     for prompt in args.prompts:
         txt, weight = parse_prompt(prompt)
-        target_embeds.append(
-            clip_model.encode_text(clip.tokenize(txt).to(device)).float()
-        )
+        target_embeds.append(clip_model.encode_text(clip.tokenize(txt).to(device)).float())
         weights.append(weight)
 
     for prompt in args.images:

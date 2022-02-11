@@ -109,9 +109,7 @@ class Modulation2d(nn.Module):
 
     def forward(self, input):
         scales, shifts = self.layer(self.state["cond"]).chunk(2, dim=-1)
-        return torch.addcmul(
-            shifts[..., None, None], input, scales[..., None, None] + 1
-        )
+        return torch.addcmul(shifts[..., None, None], input, scales[..., None, None] + 1)
 
 
 class ResModConvBlock(ResidualBlock):
@@ -258,54 +256,22 @@ class DiffusionModel(nn.Module):
                                                     SkipBlock(
                                                         [
                                                             self.down,  # 4x4
-                                                            conv_block(
-                                                                cs[5], cs[6], cs[6]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[6], cs[6] // 64
-                                                            ),
-                                                            conv_block(
-                                                                cs[6], cs[6], cs[6]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[6], cs[6] // 64
-                                                            ),
-                                                            conv_block(
-                                                                cs[6], cs[6], cs[6]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[6], cs[6] // 64
-                                                            ),
-                                                            conv_block(
-                                                                cs[6], cs[6], cs[6]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[6], cs[6] // 64
-                                                            ),
-                                                            conv_block(
-                                                                cs[6], cs[6], cs[6]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[6], cs[6] // 64
-                                                            ),
-                                                            conv_block(
-                                                                cs[6], cs[6], cs[6]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[6], cs[6] // 64
-                                                            ),
-                                                            conv_block(
-                                                                cs[6], cs[6], cs[6]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[6], cs[6] // 64
-                                                            ),
-                                                            conv_block(
-                                                                cs[6], cs[6], cs[5]
-                                                            ),
-                                                            SelfAttention2d(
-                                                                cs[5], cs[5] // 64
-                                                            ),
+                                                            conv_block(cs[5], cs[6], cs[6]),
+                                                            SelfAttention2d(cs[6], cs[6] // 64),
+                                                            conv_block(cs[6], cs[6], cs[6]),
+                                                            SelfAttention2d(cs[6], cs[6] // 64),
+                                                            conv_block(cs[6], cs[6], cs[6]),
+                                                            SelfAttention2d(cs[6], cs[6] // 64),
+                                                            conv_block(cs[6], cs[6], cs[6]),
+                                                            SelfAttention2d(cs[6], cs[6] // 64),
+                                                            conv_block(cs[6], cs[6], cs[6]),
+                                                            SelfAttention2d(cs[6], cs[6] // 64),
+                                                            conv_block(cs[6], cs[6], cs[6]),
+                                                            SelfAttention2d(cs[6], cs[6] // 64),
+                                                            conv_block(cs[6], cs[6], cs[6]),
+                                                            SelfAttention2d(cs[6], cs[6] // 64),
+                                                            conv_block(cs[6], cs[6], cs[5]),
+                                                            SelfAttention2d(cs[5], cs[5] // 64),
                                                             self.up,
                                                         ]
                                                     ),
@@ -365,9 +331,7 @@ class DiffusionModel(nn.Module):
     def forward(self, input, t, clip_embed):
         clip_embed = F.normalize(clip_embed, dim=-1) * clip_embed.shape[-1] ** 0.5
         mapping_timestep_embed = self.mapping_timestep_embed(t[:, None])
-        self.state["cond"] = self.mapping(
-            torch.cat([clip_embed, mapping_timestep_embed], dim=1)
-        )
+        self.state["cond"] = self.mapping(torch.cat([clip_embed, mapping_timestep_embed], dim=1))
         timestep_embed = expand_to_planes(self.timestep_embed(t[:, None]), input.shape)
         out = self.net(torch.cat([input, timestep_embed], dim=1))
         self.state.clear()
@@ -410,9 +374,7 @@ def sample(model, x, steps, eta, extra_args, guidance_scale=1.0):
             # If eta > 0, adjust the scaling factor for the predicted noise
             # downward according to the amount of additional noise to add
             ddim_sigma = (
-                eta
-                * (sigmas[i + 1] ** 2 / sigmas[i] ** 2).sqrt()
-                * (1 - alphas[i] ** 2 / alphas[i + 1] ** 2).sqrt()
+                eta * (sigmas[i + 1] ** 2 / sigmas[i] ** 2).sqrt() * (1 - alphas[i] ** 2 / alphas[i + 1] ** 2).sqrt()
             )
             adjusted_sigma = (sigmas[i + 1] ** 2 - ddim_sigma**2).sqrt()
 
@@ -479,8 +441,7 @@ class JsonCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {self.stems[index]} "
-                    f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {self.stems[index]} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -525,8 +486,7 @@ class JsonCaptions2(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {image} "
-                    f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {image} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -556,7 +516,9 @@ class DanbooruCaptions(data.Dataset):
                 datapoint = self.data[index]
                 image = Image.open(Path(self.root) / datapoint["filename"])
                 tags = [example["name"] for example in datapoint["tags"]]
-                text = f"A drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
+                text = (
+                    f"A drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
+                )
                 # TODO log this text?
                 if self.transform is not None:
                     image = self.transform(image)
@@ -570,8 +532,7 @@ class DanbooruCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {image} "
-                    f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {image} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -617,8 +578,7 @@ class ConceptualCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {self.stems[index]} "
-                    f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {self.stems[index]} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -641,9 +601,7 @@ class LightningDiffusion(pl.LightningModule):
         super().__init__()
         self.model = DiffusionModel()
         self.model_ema = deepcopy(self.model)
-        self.clip_model = (
-            clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
-        )
+        self.clip_model = clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
 
     def forward(self, *args, **kwargs):
@@ -652,9 +610,7 @@ class LightningDiffusion(pl.LightningModule):
         return self.model_ema(*args, **kwargs)
 
     def configure_optimizers(self):
-        return optim.AdamW(
-            self.model.parameters(), lr=3e-5, eps=1e-5, weight_decay=0.01
-        )
+        return optim.AdamW(self.model.parameters(), lr=3e-5, eps=1e-5, weight_decay=0.01)
         # return optim.AdamW(self.model.parameters(), lr=5e-6, weight_decay=0.01)
 
     def eval_batch(self, batch):
@@ -715,9 +671,7 @@ class DemoCallback(pl.Callback):
         noise = torch.randn([16, 3, 256, 256], device=module.device)
         clip_embed = module.clip_model.encode_text(self.prompts_toks.to(module.device))
         with eval_mode(module):
-            fakes = sample(
-                module, noise, 1000, 1, {"clip_embed": clip_embed}, guidance_scale=3.0
-            )
+            fakes = sample(module, noise, 1000, 1, {"clip_embed": clip_embed}, guidance_scale=3.0)
 
         grid = utils.make_grid(fakes, 4, padding=0).cpu()
         image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
@@ -755,9 +709,7 @@ def worker_init_fn(worker_id):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument(
-        "--train-set", type=Path, required=True, help="the training set location"
-    )
+    p.add_argument("--train-set", type=Path, required=True, help="the training set location")
     p.add_argument("--demo-prompts", type=Path, required=True, help="the demo prompts")
     p.add_argument(
         "--checkpoint",
@@ -822,9 +774,7 @@ def main():
 
     ## Choose dataset loader mode.
     if args.dataset_mode == "conceptual":
-        train_set = ConceptualCaptions(
-            args.train_set, "stems.txt", transform=tf, target_transform=ttf
-        )
+        train_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
     elif args.dataset_mode == "json":
         train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "json2":
@@ -847,9 +797,7 @@ def main():
     model = LightningDiffusion()
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
-    ckpt_callback = pl.callbacks.ModelCheckpoint(
-        every_n_train_steps=10000, save_top_k=2, monitor="train/loss"
-    )
+    ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=10000, save_top_k=2, monitor="train/loss")
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
