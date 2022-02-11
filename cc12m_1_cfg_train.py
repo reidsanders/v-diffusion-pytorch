@@ -800,19 +800,19 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
-    ### TODO     trainer = Trainer.from_argparse_args(args)
-    trainer = pl.Trainer(
-        tpu_cores=8,
-        num_nodes=1,
-        # strategy='ddp',
-        precision="bf16",
-        callbacks=[ckpt_callback, exc_callback, metrics_callback],
-        logger=wandb_logger,
-        log_every_n_steps=1000,
-        max_epochs=10,
-        accumulate_grad_batches=1,
-        # flush_logs_every_n_steps=100,
-    )
+    trainer = pl.Trainer.from_argparse_args(args)
+    # trainer = pl.Trainer(
+    #     tpu_cores=8,
+    #     num_nodes=1,
+    #     # strategy='ddp',
+    #     precision="bf16",
+    #     callbacks=[ckpt_callback, exc_callback, metrics_callback],
+    #     logger=wandb_logger,
+    #     log_every_n_steps=1000,
+    #     max_epochs=10,
+    #     accumulate_grad_batches=1,
+    #     # flush_logs_every_n_steps=100,
+    # )
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
