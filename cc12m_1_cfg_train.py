@@ -757,6 +757,13 @@ def main():
         required=False,
         help='Dataset mode to use: "conceptual, json, json2, danbooru"'
     )
+    p.add_argument(
+        '--project-name',
+        type=str,
+        default='kat-diffusion',
+        required=False,
+        help='project name for logging'
+    )
     ### TODO     parser = Trainer.add_argparse_args(parser) to capture all training args
     args = p.parse_args()
     print(f"Starting train on {args.train_set}")
@@ -808,7 +815,7 @@ def main():
     ]
 
     model = LightningDiffusion()
-    wandb_logger = pl.loggers.WandbLogger(project='kat-diffusion')
+    wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(
         every_n_train_steps=10000, save_top_k=2, monitor='train/loss'
