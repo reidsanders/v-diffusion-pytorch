@@ -745,7 +745,7 @@ def main():
         required=False,
         help="project name for logging",
     )
-    ### TODO     parser = Trainer.add_argparse_args(parser) to capture all training args
+    pl.Trainer.add_argparse_args(p)
     args = p.parse_args()
     print(f"Starting train on {args.train_set}")
 
