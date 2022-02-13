@@ -42,27 +42,17 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("init", type=str, help="the init image")
     p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
-    p.add_argument(
-        "--images",
-        type=str,
-        default=[],
-        nargs="*",
-        metavar="IMAGE",
-        help="the image prompts",
-    )
+    p.add_argument("--images", type=str, default=[], nargs="*", metavar="IMAGE", help="the image prompts")
     p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
     p.add_argument("--device", type=str, help="the device to use")
     p.add_argument("--max-timestep", "-mt", type=float, default=1.0, help="the maximum timestep")
     p.add_argument(
-        "--model",
-        type=str,
-        default="cc12m_1_cfg",
-        choices=["cc12m_1_cfg"],
-        help="the model to use",
+        "--method", type=str, default="plms", choices=["ddim", "prk", "plms"], help="the sampling method to use"
     )
+    p.add_argument("--model", type=str, default="cc12m_1_cfg", choices=["cc12m_1_cfg"], help="the model to use")
     p.add_argument("--output", "-o", type=str, default="out.png", help="the output filename")
     p.add_argument("--size", type=int, nargs=2, help="the output image size")
-    p.add_argument("--steps", type=int, default=250, help="the number of timesteps")
+    p.add_argument("--steps", type=int, default=50, help="the number of timesteps")
     args = p.parse_args()
 
     if args.device:
@@ -128,8 +118,15 @@ def main():
         t = torch.linspace(0, 1, args.steps + 1, device=device)
         steps = utils.get_spliced_ddpm_cosine_schedule(t)
         steps = steps[steps <= args.max_timestep]
-        x = sampling.reverse_sample(model, init, steps, {"clip_embed": zero_embed})
-        out = sampling.sample(cfg_model_fn, x, steps.flip(0)[:-1], 0, {})
+        if args.method == "ddim":
+            x = sampling.reverse_sample(model, init, steps, {"clip_embed": zero_embed})
+            out = sampling.sample(cfg_model_fn, x, steps.flip(0)[:-1], 0, {})
+        if args.method == "prk":
+            x = sampling.prk_sample(model, init, steps, {"clip_embed": zero_embed}, is_reverse=True)
+            out = sampling.prk_sample(cfg_model_fn, x, steps.flip(0)[:-1], {})
+        if args.method == "plms":
+            x = sampling.plms_sample(model, init, steps, {"clip_embed": zero_embed}, is_reverse=True)
+            out = sampling.plms_sample(cfg_model_fn, x, steps.flip(0)[:-1], {})
         utils.to_pil_image(out[0]).save(args.output)
 
     try:

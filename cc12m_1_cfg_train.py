@@ -805,11 +805,11 @@ def main():
     exc_callback = ExceptionCallback()
     # pprint(dir(trainer))
     # pprint(trainer.keys())
-    #TODO parse known args?
+    # TODO parse known args?
     # Ideally the parser would have defaults defined in the code, which are updated only if they are passed from the CL,
     print(args)
-    override = {'tpu_cores': 8}
-    for k,v in override.items():
+    override = {"tpu_cores": 8}
+    for k, v in override.items():
         args[k] = v
 
     for key, value in override.items():

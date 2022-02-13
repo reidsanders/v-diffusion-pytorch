@@ -41,48 +41,27 @@ def resize_and_center_crop(image, size):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
-    p.add_argument(
-        "--images",
-        type=str,
-        default=[],
-        nargs="*",
-        metavar="IMAGE",
-        help="the image prompts",
-    )
-    p.add_argument(
-        "--batch-size",
-        "-bs",
-        type=int,
-        default=1,
-        help="the number of images per batch",
-    )
+    p.add_argument("--images", type=str, default=[], nargs="*", metavar="IMAGE", help="the image prompts")
+    p.add_argument("--batch-size", "-bs", type=int, default=1, help="the number of images per batch")
     p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
     p.add_argument("--device", type=str, help="the device to use")
-    p.add_argument(
-        "--eta",
-        type=float,
-        default=1.0,
-        help="the amount of noise to add during sampling (0-1)",
-    )
+    p.add_argument("--eta", type=float, default=0.0, help="the amount of noise to add during sampling (0-1)")
     p.add_argument("--init", type=str, help="the init image")
     p.add_argument(
-        "--model",
+        "--method",
         type=str,
-        default="cc12m_1_cfg",
-        choices=["cc12m_1_cfg"],
-        help="the model to use",
+        default="plms",
+        choices=["ddpm", "ddim", "prk", "plms"],
+        help="the sampling method to use",
     )
+    p.add_argument("--model", type=str, default="cc12m_1_cfg", choices=["cc12m_1_cfg"], help="the model to use")
     p.add_argument("-n", type=int, default=1, help="the number of images to sample")
     p.add_argument("--seed", type=int, default=0, help="the random seed")
     p.add_argument("--size", type=int, nargs=2, help="the output image size")
     p.add_argument(
-        "--starting-timestep",
-        "-st",
-        type=float,
-        default=0.9,
-        help="the timestep to start at (used with init images)",
+        "--starting-timestep", "-st", type=float, default=0.9, help="the timestep to start at (used with init images)"
     )
-    p.add_argument("--steps", type=int, default=500, help="the number of timesteps")
+    p.add_argument("--steps", type=int, default=50, help="the number of timesteps")
     p.add_argument("--outdir", type=str, default="./generated-images/", help="Directory to save output files to")
     args = p.parse_args()
 
@@ -169,7 +148,15 @@ def main():
         return v
 
     def run(x, steps):
-        return sampling.sample(cfg_model_fn, x, steps, args.eta, {})
+        if args.method == "ddpm":
+            return sampling.sample(cfg_model_fn, x, steps, 1.0, {})
+        if args.method == "ddim":
+            return sampling.sample(cfg_model_fn, x, steps, args.eta, {})
+        if args.method == "prk":
+            return sampling.prk_sample(cfg_model_fn, x, steps, {})
+        if args.method == "plms":
+            return sampling.plms_sample(cfg_model_fn, x, steps, {})
+        assert False
 
     def run_all(n, batch_size):
         x = torch.randn([n, 3, side_y, side_x], device=device)
