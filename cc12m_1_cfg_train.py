@@ -814,7 +814,7 @@ def main():
     trainer = pl.Trainer.from_argparse_args(args)
     trainer.tune(model)
     args_log = deepcopy(vars(args))
-    for k,v in args.items():
+    for k,v in vars(args).items():
         if type(v) == PosixPath:
             args_log[k] = str(v)
     model.log_dict(vars(args_log), prog_bar=True, on_step=True)
