@@ -812,7 +812,7 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    trainer.tune()
+    trainer.tune(model)
     wandb_logger.log_dict(vars(args), prog_bar=True, on_step=True)
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
