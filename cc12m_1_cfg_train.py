@@ -818,6 +818,7 @@ def main():
     #     if type(v) == PosixPath:
     #         args_log[k] = wandb.Html(f"<pre>{str(v)}</pre>")
     # model.log(args_log, prog_bar=True, on_step=True) ###TODO weird wandb errors, can't log str
+    wandb_logger.init(config=args,save_code=True, magic=True)
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
