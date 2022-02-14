@@ -643,8 +643,12 @@ class LightningDiffusion(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.eval_batch(batch)
         log_dict = {"train/loss": loss.detach()}
+        # task_f1 = pl.metrics.functional.f1(task_preds, task_labels, num_classes = self.hparams.num_classes)
         self.log_dict(log_dict, prog_bar=True, on_step=True)
         return loss
+
+    # def train_dataloader(self):
+    #     return super().train_dataloader()
 
     def on_before_zero_grad(self, *args, **kwargs):
         if self.trainer.global_step < 20000:
@@ -815,13 +819,8 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    trainer.tune(model)
-    # args_log = deepcopy(vars(args))
-    # for k,v in vars(args).items():
-    #     if type(v) == PosixPath:
-    #         args_log[k] = wandb.Html(f"<pre>{str(v)}</pre>")
-    # model.log(args_log, prog_bar=True, on_step=True) ###TODO weird wandb errors, can't log str
-    wandb_logger.init(config=args,save_code=True, magic=True)
+    # trainer.tune(model, train_dataloaders=train_dl)
+    wandb.init(config=args,save_code=True, magic=True)
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
