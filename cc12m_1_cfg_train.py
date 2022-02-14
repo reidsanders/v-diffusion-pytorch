@@ -716,8 +716,8 @@ def worker_init_fn(worker_id):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--train-set", type=Path, required=True, help="the training set location")
-    p.add_argument("--demo-prompts", type=Path, required=True, help="the demo prompts")
+    p.add_argument("--train_set", type=Path, required=True, help="the training set location")
+    p.add_argument("--demo_prompts", type=Path, required=True, help="the demo prompts")
     p.add_argument(
         "--checkpoint",
         type=Path,
@@ -740,14 +740,14 @@ def main():
         help="Image size in pixels. Assumes square image",
     )
     p.add_argument(
-        "--dataset-mode",
+        "--dataset_mode",
         type=str,
         default="json2",
         required=False,
         help='Dataset mode to use: "conceptual, json, json2, danbooru"',
     )
     p.add_argument(
-        "--project-name",
+        "--project_name",
         type=str,
         default="kat-diffusion",
         required=False,
