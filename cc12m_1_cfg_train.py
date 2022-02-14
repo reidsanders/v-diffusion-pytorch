@@ -746,7 +746,7 @@ def main():
         required=False,
         help="project name for logging",
     )
-    args = p.parse_args()
+    args = p.parse_known_args()
     print(f"Starting train on {args.train_set}")
 
     ### See https://github.com/wandb/client/issues/1994
@@ -812,6 +812,7 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
+    trainer.tune()
     wandb_logger.log_dict(vars(args), prog_bar=True, on_step=True)
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
