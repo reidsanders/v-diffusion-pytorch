@@ -604,6 +604,9 @@ class LightningDiffusion(pl.LightningModule):
         self.model_ema = deepcopy(self.model)
         self.clip_model = clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
+        self.lr = 3e-5
+        self.eps = 1e-5
+        self.weight_decay = .01
 
     def forward(self, *args, **kwargs):
         if self.training:
@@ -611,7 +614,7 @@ class LightningDiffusion(pl.LightningModule):
         return self.model_ema(*args, **kwargs)
 
     def configure_optimizers(self):
-        return optim.AdamW(self.model.parameters(), lr=3e-5, eps=1e-5, weight_decay=0.01)
+        return optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
         # return optim.AdamW(self.model.parameters(), lr=5e-6, weight_decay=0.01)
 
     def eval_batch(self, batch):
