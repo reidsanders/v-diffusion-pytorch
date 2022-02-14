@@ -746,7 +746,7 @@ def main():
         required=False,
         help="project name for logging",
     )
-    args = p.parse_known_args()
+    args = p.parse_known_args()[0]
     print(f"Starting train on {args.train_set}")
 
     ### See https://github.com/wandb/client/issues/1994
