@@ -6,7 +6,7 @@ from copy import deepcopy
 from functools import partial
 import math
 import random
-from pathlib import Path
+from pathlib import Path, PosixPath
 import sys
 
 from PIL import Image
@@ -813,7 +813,11 @@ def main():
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
     trainer.tune(model)
-    model.log_dict(vars(args), prog_bar=True, on_step=True)
+    args_log = deepcopy(vars(args))
+    for k,v in args.items():
+        if type(v) == PosixPath:
+            args_log[k] = str(v)
+    model.log_dict(vars(args_log), prog_bar=True, on_step=True)
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
