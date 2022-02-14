@@ -747,9 +747,6 @@ def main():
         help="project name for logging",
     )
     args = p.parse_args()
-    p_trainer = argparse.ArgumentParser()
-    pl.Trainer.add_argparse_args(p_trainer)
-    trainer_args = p_trainer.parse_args()
     print(f"Starting train on {args.train_set}")
 
     ### See https://github.com/wandb/client/issues/1994
@@ -803,30 +800,19 @@ def main():
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
-    # pprint(dir(trainer))
-    # pprint(trainer.keys())
-    # TODO parse known args?
-    # Ideally the parser would have defaults defined in the code, which are updated only if they are passed from the CL,
-    print(args)
-    override = {"tpu_cores": 8}
-    for k, v in override.items():
-        args[k] = v
-
-    for key, value in override.items():
-        setattr(args, key, value)
+    pl.Trainer.add_argparse_args(p)
+    p.set_defaults(
+         tpu_cores=8,
+         num_nodes=1,
+         precision="bf16",
+         callbacks=[ckpt_callback, exc_callback, metrics_callback],
+         logger=wandb_logger,
+         log_every_n_steps=1000,
+         max_epochs=10,
+    )
+    args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    # trainer = pl.Trainer(
-    #      tpu_cores=8,
-    #      num_nodes=1,
-    #      # strategy='ddp',
-    #      precision="bf16",
-    #      callbacks=[ckpt_callback, exc_callback, metrics_callback],
-    #      logger=wandb_logger,
-    #      log_every_n_steps=1000,
-    #      max_epochs=10,
-    #      accumulate_grad_batches=1,
-    #      # flush_logs_every_n_steps=100,
-    # )
+    wandb_logger.log_dict(vars(args), prog_bar=True, on_step=True)
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
