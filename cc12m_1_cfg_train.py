@@ -817,7 +817,7 @@ def main():
     for k,v in vars(args).items():
         if type(v) == PosixPath:
             args_log[k] = str(v)
-    model.log_dict(vars(args_log), prog_bar=True, on_step=True)
+    model.log_dict(args_log, prog_bar=True, on_step=True)
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
