@@ -813,11 +813,11 @@ def main():
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
     trainer.tune(model)
-    args_log = deepcopy(vars(args))
-    for k,v in vars(args).items():
-        if type(v) == PosixPath:
-            args_log[k] = str(v)
-    model.log_dict(args_log, prog_bar=True, on_step=True)
+    # args_log = deepcopy(vars(args))
+    # for k,v in vars(args).items():
+    #     if type(v) == PosixPath:
+    #         args_log[k] = wandb.Html(f"<pre>{str(v)}</pre>")
+    # model.log(args_log, prog_bar=True, on_step=True) ###TODO weird wandb errors, can't log str
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
