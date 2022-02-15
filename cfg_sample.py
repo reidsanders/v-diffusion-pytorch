@@ -174,7 +174,7 @@ def main():
 
     try:
         if not Path.is_dir(Path(args.outdir)):
-            Path.mkdir(args.outdir)
+            Path.mkdir(Path(args.outdir))
         run_all(args.n, args.batch_size)
     except KeyboardInterrupt:
         pass

@@ -820,7 +820,7 @@ def main():
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
     # trainer.tune(model, train_dataloaders=train_dl)
-    wandb.init(config=args,save_code=True, magic=True)
+    wandb.init(config=vars(args),save_code=True, name="Diffusion Run tmp")
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
