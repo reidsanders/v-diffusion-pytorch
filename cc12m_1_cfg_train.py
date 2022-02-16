@@ -604,7 +604,7 @@ class LightningDiffusion(pl.LightningModule):
         self.model_ema = deepcopy(self.model)
         self.clip_model = clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
-        self.lr = 5e-4
+        self.lr = 1e-4
         self.eps = 1e-5
         self.weight_decay = 0.01
 
@@ -758,7 +758,6 @@ def main():
 
     ### See https://github.com/wandb/client/issues/1994
     # os.environ['WANDB_CONSOLE'] = 'off'
-    wandb.require(experiment="service")
 
     tf = transforms.Compose(
         [
@@ -819,10 +818,10 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    # trainer.tune(model, train_dataloaders=train_dl)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
 if __name__ == "__main__":
+    wandb.require(experiment="service")
     main()
