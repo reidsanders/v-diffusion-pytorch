@@ -606,7 +606,7 @@ class LightningDiffusion(pl.LightningModule):
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
         self.lr = 5e-4
         self.eps = 1e-5
-        self.weight_decay = .01
+        self.weight_decay = 0.01
 
     def forward(self, *args, **kwargs):
         if self.training:
@@ -809,18 +809,18 @@ def main():
     exc_callback = ExceptionCallback()
     pl.Trainer.add_argparse_args(p)
     p.set_defaults(
-         tpu_cores=8,
-         num_nodes=1,
-         precision="bf16",
-         callbacks=[ckpt_callback, exc_callback, metrics_callback],
-         logger=wandb_logger,
-         log_every_n_steps=1000,
-         max_epochs=10,
+        tpu_cores=8,
+        num_nodes=1,
+        precision="bf16",
+        callbacks=[ckpt_callback, exc_callback, metrics_callback],
+        logger=wandb_logger,
+        log_every_n_steps=1000,
+        max_epochs=10,
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
     # trainer.tune(model, train_dataloaders=train_dl)
-    wandb.init(config=vars(args),save_code=True, name="Diffusion Run tmp")
+    wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
