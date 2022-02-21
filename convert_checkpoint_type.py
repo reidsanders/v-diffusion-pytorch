@@ -30,11 +30,11 @@ def main():
     lightning_model = torch.load(target, map_location="cpu")
     import ipdb; ipdb.set_trace()
 
-    state_dict_modified = {
-        re.sub("model.(.*)", r"\1", key): value for (key, value) in checkpoint_loaded["state_dict"].items()
-    }
+    #state_dict_modified = {
+        #re.sub("model.(.*)", r"\1", key): value for (key, value) in checkpoint_loaded["state_dict"].items()
+    #}
 
-    lightning_model["state_dict"] = 
+    #lightning_model["state_dict"] = 
 
 if __name__ == "__main__":
     main()
