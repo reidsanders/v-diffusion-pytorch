@@ -782,6 +782,7 @@ def main():
         train_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
     elif args.dataset_mode == "json":
         train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
+        #TODO load val / test set
     elif args.dataset_mode == "json2":
         train_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "danbooru":
@@ -819,7 +820,15 @@ def main():
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
-    trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
+    try:
+        print(f"Trying torch state_dict model format")
+        model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
+        trainer.fit(model, train_dl)
+    except RuntimeError:
+        print(f"Trying lightning model format")
+        #NOTE this is loading training run state. Maybe have option to not load optimizer, etc
+        trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
+
 
 
 if __name__ == "__main__":

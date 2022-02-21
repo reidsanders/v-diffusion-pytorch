@@ -27,14 +27,16 @@ def main():
     args = p.parse_args()
 
     checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
-    lightning_model = torch.load(target, map_location="cpu")
-    import ipdb; ipdb.set_trace()
+    lightning_model = torch.load(args.target, map_location="cpu")
 
-    #state_dict_modified = {
-        #re.sub("model.(.*)", r"\1", key): value for (key, value) in checkpoint_loaded["state_dict"].items()
-    #}
+    state_dict_modified = {
+        re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
+    }
 
-    #lightning_model["state_dict"] = 
+    lightning_model["state_dict"] = state_dict_modified
+    lightning_model.save(Path(args.outdir) / "checkpoint_lightning.pth")
+    #import ipdb; ipdb.set_trace()
+
 
 if __name__ == "__main__":
     main()
