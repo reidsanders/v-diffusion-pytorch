@@ -813,7 +813,7 @@ def main():
     val_dl = data.DataLoader(
         val_set,
         args.batchsize,
-        shuffle=True,
+        shuffle=False,
         worker_init_fn=worker_init_fn,
         num_workers=96,
         persistent_workers=True,
@@ -851,6 +851,7 @@ def main():
     except RuntimeError:
         print(f"Trying lightning model format")
         #NOTE this is loading training run state. Maybe have option to not load optimizer, etc
+
         trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
 
 
