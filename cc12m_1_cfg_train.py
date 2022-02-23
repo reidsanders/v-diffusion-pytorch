@@ -849,4 +849,5 @@ def main():
 
 if __name__ == "__main__":
     wandb.require(experiment="service")
+    wandb.setup()
     main()
