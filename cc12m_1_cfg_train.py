@@ -647,6 +647,14 @@ class LightningDiffusion(pl.LightningModule):
         self.log_dict(log_dict, prog_bar=True, on_step=True)
         return loss
 
+    @torch.no_grad()
+    def validation_step(self, batch, batch_idx):
+        with no_grad
+        loss = self.eval_batch(batch)
+        log_dict = {"val/loss": loss.detach()}
+        self.log_dict(log_dict, prog_bar=True, on_step=True)
+        return loss
+
     # def train_dataloader(self):
     #     return super().train_dataloader()
 
@@ -829,7 +837,8 @@ def main():
         precision="bf16",
         callbacks=[ckpt_callback, exc_callback, metrics_callback],
         logger=wandb_logger,
-        log_every_n_steps=1000,
+        log_every_n_steps=100,
+        #val_check_interval=1,
         max_epochs=10,
     )
     args = p.parse_args()
