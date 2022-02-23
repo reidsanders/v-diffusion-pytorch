@@ -836,8 +836,9 @@ def main():
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     try:
-        print(f"Trying torch state_dict model format")
-        model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
+        if args.checkpoint:
+            print(f"Trying torch state_dict model format")
+            model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
         trainer.fit(model, train_dl, val_dl)
     except RuntimeError:
         print(f"Trying lightning model format")
