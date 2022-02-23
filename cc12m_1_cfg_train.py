@@ -789,12 +789,8 @@ def main():
     ## Choose dataset loader mode.
     if args.dataset_mode == "conceptual":
         train_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
-            
     elif args.dataset_mode == "json":
         train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
-        if args.val_set:
-            val_set = JsonCaptions(args.val_set, transform=tf, target_transform=ttf)
-        #TODO load val / test set
     elif args.dataset_mode == "json2":
         train_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "danbooru":
@@ -809,17 +805,6 @@ def main():
         persistent_workers=True,
         pin_memory=True,
     )
-
-    val_dl = data.DataLoader(
-        val_set,
-        args.batchsize,
-        shuffle=False,
-        worker_init_fn=worker_init_fn,
-        num_workers=96,
-        persistent_workers=True,
-        pin_memory=True,
-    )
-
     demo_prompts = [line.rstrip() for line in open(args.demo_prompts).readlines()]
 
     model = LightningDiffusion()
@@ -843,16 +828,43 @@ def main():
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
-    try:
-        if args.checkpoint:
-            print(f"Trying torch state_dict model format")
-            model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
-        trainer.fit(model, train_dl, val_dl)
-    except RuntimeError:
-        print(f"Trying lightning model format")
-        #NOTE this is loading training run state. Maybe have option to not load optimizer, etc
 
-        trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
+    if args.val_set:
+        ## Choose dataset loader mode.
+        if args.dataset_mode == "conceptual":
+            val_set = ConceptualCaptions(args.val_set, "stems.txt", transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "json":
+            val_set = JsonCaptions(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "json2":
+            val_set = JsonCaptions2(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "danbooru":
+            val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
+        val_dl = data.DataLoader(
+            val_set,
+            args.batchsize,
+            shuffle=False,
+            worker_init_fn=worker_init_fn,
+            num_workers=96,
+            persistent_workers=True,
+            pin_memory=True,
+        )
+        try:
+            if args.checkpoint:
+                print(f"Trying torch state_dict model format")
+                model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
+            trainer.fit(model, train_dl, val_dl)
+        except RuntimeError:
+            print(f"Trying lightning model format")
+            trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
+    else:
+        try:
+            if args.checkpoint:
+                print(f"Trying torch state_dict model format")
+                model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
+            trainer.fit(model, train_dl)
+        except RuntimeError:
+            print(f"Trying lightning model format")
+            trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
 
 
 
