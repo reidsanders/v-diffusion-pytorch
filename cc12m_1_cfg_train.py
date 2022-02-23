@@ -717,6 +717,8 @@ def worker_init_fn(worker_id):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--train_set", type=Path, required=True, help="the training set location")
+    p.add_argument("--val_set", type=Path, required=False, help="the val set location")
+    p.add_argument("--test_set", type=Path, required=False, help="the test set location")
     p.add_argument("--demo_prompts", type=Path, required=True, help="the demo prompts")
     p.add_argument(
         "--checkpoint",
@@ -780,8 +782,11 @@ def main():
     ## Choose dataset loader mode.
     if args.dataset_mode == "conceptual":
         train_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
+            
     elif args.dataset_mode == "json":
         train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
+        if args.val_set:
+            val_set = JsonCaptions(args.val_set, transform=tf, target_transform=ttf)
         #TODO load val / test set
     elif args.dataset_mode == "json2":
         train_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
@@ -790,6 +795,16 @@ def main():
 
     train_dl = data.DataLoader(
         train_set,
+        args.batchsize,
+        shuffle=True,
+        worker_init_fn=worker_init_fn,
+        num_workers=96,
+        persistent_workers=True,
+        pin_memory=True,
+    )
+
+    val_dl = data.DataLoader(
+        val_set,
         args.batchsize,
         shuffle=True,
         worker_init_fn=worker_init_fn,
@@ -823,11 +838,11 @@ def main():
     try:
         print(f"Trying torch state_dict model format")
         model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
-        trainer.fit(model, train_dl)
+        trainer.fit(model, train_dl, val_dl)
     except RuntimeError:
         print(f"Trying lightning model format")
         #NOTE this is loading training run state. Maybe have option to not load optimizer, etc
-        trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
+        trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
 
 
 
