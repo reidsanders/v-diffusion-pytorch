@@ -649,7 +649,6 @@ class LightningDiffusion(pl.LightningModule):
 
     @torch.no_grad()
     def validation_step(self, batch, batch_idx):
-        with no_grad
         loss = self.eval_batch(batch)
         log_dict = {"val/loss": loss.detach()}
         self.log_dict(log_dict, prog_bar=True, on_step=True)
