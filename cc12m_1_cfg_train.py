@@ -604,7 +604,7 @@ class LightningDiffusion(pl.LightningModule):
         self.model_ema = deepcopy(self.model)
         self.clip_model = clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
-        self.lr = 1e-4
+        self.lr = 3e-5
         self.eps = 1e-5
         self.weight_decay = 0.01
 
