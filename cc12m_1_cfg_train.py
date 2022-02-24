@@ -859,7 +859,7 @@ def main():
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
     # wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
-    wandb.config.update(vars(args))
+    # wandb.config.update(vars(args))
 
     if args.checkpoint:
         try:
