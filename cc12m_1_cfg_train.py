@@ -829,6 +829,7 @@ def main():
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
 
+    model.load_state_dict(torch.load(args.checkpoint, map_location="cpu"))
     if args.val_set:
         ## Choose dataset loader mode.
         if args.dataset_mode == "conceptual":
