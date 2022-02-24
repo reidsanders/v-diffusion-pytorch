@@ -17,6 +17,7 @@ from diffusion import get_model, get_models, sampling, utils
 
 MODULE_DIR = Path(__file__).resolve().parent
 
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("checkpoint", type=str, help="the checkpoint to use")
@@ -35,7 +36,7 @@ def main():
 
     lightning_model["state_dict"] = state_dict_modified
     lightning_model.save(Path(args.outdir) / "checkpoint_lightning.pth")
-    #import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
 
 if __name__ == "__main__":

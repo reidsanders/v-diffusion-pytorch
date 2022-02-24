@@ -31,6 +31,7 @@ from CLIP import clip
 
 # Define utility functions
 
+
 @contextmanager
 def train_mode(model, mode=True):
     """A context manager that places a model into training mode and restores
@@ -598,16 +599,16 @@ class ToMode:
 
 
 class LightningDiffusion(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, total_steps=1e20, lr=3e-5, eps=1e-5, weight_decay=0.01):
         super().__init__()
         self.model = DiffusionModel()
         self.model_ema = deepcopy(self.model)
         self.clip_model = clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
-        self.lr = 3e-5
-        self.total_steps = 9999999999999
-        self.eps = 1e-5
-        self.weight_decay = 0.01
+        self.lr = lr
+        self.total_steps = total_steps
+        self.eps = eps
+        self.weight_decay = weight_decay
 
     def forward(self, *args, **kwargs):
         if self.training:
@@ -618,7 +619,9 @@ class LightningDiffusion(pl.LightningModule):
         optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
         lr_scheduler_config = {
             # REQUIRED: The scheduler instance
-            "scheduler": optim.lr_scheduler.OneCycleLR(optimizer, self.lr*20, total_steps=self.total_steps), #TODO test out
+            "scheduler": optim.lr_scheduler.OneCycleLR(
+                optimizer, self.lr * 20, total_steps=self.total_steps
+            ),  # TODO test out
             # The unit of the scheduler's step size, could also be 'step'.
             # 'epoch' updates the scheduler on epoch end whereas 'step'
             # updates it after a optimizer update.
@@ -834,6 +837,7 @@ def main():
 
     def ttf(caption):
         return tok_wrap(caption).squeeze(0)
+
     ## Choose dataset loader mode.
     if args.dataset_mode == "conceptual":
         fulldata_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
@@ -845,8 +849,10 @@ def main():
         fulldata_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
 
     if not args.val_set:
-        ## Split data 
-        train_set, val_set = data.dataset.random_split(fulldata_set, [len(fulldata_set)-len(fulldata_set)//20, len(fulldata_set)//20])                                                                                                            
+        ## Split data
+        train_set, val_set = data.dataset.random_split(
+            fulldata_set, [len(fulldata_set) - len(fulldata_set) // 20, len(fulldata_set) // 20]
+        )
     else:
         train_set = fulldata_set
         ## Choose dataset loader mode.
@@ -884,7 +890,7 @@ def main():
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
-    lr_monitor_callback = pl.callbacks.LearningRateMonitor(logging_interval='step')
+    lr_monitor_callback = pl.callbacks.LearningRateMonitor(logging_interval="step")
 
     metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
@@ -898,7 +904,7 @@ def main():
         log_every_n_steps=100,
         # val_check_interval=.5,
         # profiler="simple",
-        accumulate_grad_batches={1:1,3:2,6:4,8:8,16:32,32:64,64:128,100:256},
+        accumulate_grad_batches={1: 1, 3: 2, 6: 4, 8: 8, 16: 32, 32: 64, 64: 128, 100: 256},
         max_epochs=10,
     )
     args = p.parse_args()
@@ -915,7 +921,19 @@ def main():
             re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
         }
         ## Hacky fix for unexpected keys
-        for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
+        for k in [
+            "mapping_timestep_embed.weight",
+            "mapping.0.main.0.weight",
+            "mapping.0.main.0.bias",
+            "mapping.0.main.2.weight",
+            "mapping.0.main.2.bias",
+            "mapping.0.skip.weight",
+            "mapping.1.main.0.weight",
+            "mapping.1.main.0.bias",
+            "mapping.1.main.2.weight",
+            "mapping.1.main.2.bias",
+            "timestep_embed.weight",
+        ]:
             _ = state_dict_modified.pop(k, None)
         lightning_state_dict = deepcopy(lightning_model["state_dict"])
         lightning_state_dict.update(state_dict_modified)
@@ -928,6 +946,7 @@ def main():
         trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
     else:
         trainer.fit(model, train_dl, val_dl)
+
 
 if __name__ == "__main__":
     wandb.require(experiment="service")
