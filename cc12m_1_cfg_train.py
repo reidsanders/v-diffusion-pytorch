@@ -605,6 +605,7 @@ class LightningDiffusion(pl.LightningModule):
         self.clip_model = clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
         self.lr = 3e-5
+        self.total_steps = 9999999999999
         self.eps = 1e-5
         self.weight_decay = 0.01
 
@@ -614,7 +615,34 @@ class LightningDiffusion(pl.LightningModule):
         return self.model_ema(*args, **kwargs)
 
     def configure_optimizers(self):
-        return optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
+        optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
+        lr_scheduler_config = {
+            # REQUIRED: The scheduler instance
+            "scheduler": optim.lr_scheduler.OneCycleLR(optimizer, self.lr*20, total_steps=self.total_steps), #TODO test out
+            # The unit of the scheduler's step size, could also be 'step'.
+            # 'epoch' updates the scheduler on epoch end whereas 'step'
+            # updates it after a optimizer update.
+            "interval": "epoch",
+            # How many epochs/steps should pass between calls to
+            # `scheduler.step()`. 1 corresponds to updating the learning
+            # rate after every epoch/step.
+            "frequency": 1,
+            # Metric to to monitor for schedulers like `ReduceLROnPlateau`
+            "monitor": "val/loss",
+            # If set to `True`, will enforce that the value specified 'monitor'
+            # is available when the scheduler is updated, thus stopping
+            # training if not found. If set to `False`, it will only produce a warning
+            "strict": True,
+            # If using the `LearningRateMonitor` callback to monitor the
+            # learning rate progress, this keyword can be used to specify
+            # a custom logged name
+            "name": "Reduce on Plateau Scheduler",
+        }
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": lr_scheduler_config,
+        }
         # return optim.AdamW(self.model.parameters(), lr=5e-6, weight_decay=0.01)
 
     def eval_batch(self, batch):
@@ -769,6 +797,20 @@ def main():
         required=False,
         help="project name for logging",
     )
+    p.add_argument(
+        "--total_steps_for_optimizer",
+        type=int,
+        default=999999999999,
+        required=False,
+        help="estimate of max steps for optimizer",
+    )
+    p.add_argument(
+        "--lr",
+        type=int,
+        default=3e-5,
+        required=False,
+        help="starting lr",
+    )
     args = p.parse_known_args()[0]
     print(f"Starting train on {args.train_set}")
 
@@ -837,7 +879,7 @@ def main():
     )
     demo_prompts = [line.rstrip() for line in open(args.demo_prompts).readlines()]
 
-    model = LightningDiffusion()
+    model = LightningDiffusion(total_steps=args.total_steps_for_optimizer, lr=args.lr)
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
@@ -856,7 +898,7 @@ def main():
         log_every_n_steps=100,
         # val_check_interval=.5,
         # profiler="simple",
-        accumulate_grad_batches={4:2,6:4,8:8,16:32,32:64,64:128,100:256},
+        accumulate_grad_batches={1:1,3:2,6:4,8:8,16:32,32:64,64:128,100:256},
         max_epochs=10,
     )
     args = p.parse_args()
