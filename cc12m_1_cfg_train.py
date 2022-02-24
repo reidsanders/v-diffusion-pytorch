@@ -855,7 +855,7 @@ def main():
         log_every_n_steps=100,
         val_check_interval=.5,
         profiler="simple",
-        accumulate_grad_batches={2:2,4:4,8:16,16:32,32:64,64:128},
+        accumulate_grad_batches={4:2,6:4,8:8,16:32,32:64,64:128,100:256},
         max_epochs=10,
     )
     args = p.parse_args()
