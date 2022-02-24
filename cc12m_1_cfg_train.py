@@ -874,7 +874,7 @@ def main():
             print(f"Trying lightning model format")
             trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
     else:
-        train, val = data.datasets.random_split(train_set, [len(train_set)-len(train_set)//20, len(train_set)//20])                                                                                                            
+        train, val = data.dataset.random_split(train_set, [len(train_set)-len(train_set)//20, len(train_set)//20])                                                                                                            
         try:
             if args.checkpoint:
                 print(f"Trying torch state_dict model format")
