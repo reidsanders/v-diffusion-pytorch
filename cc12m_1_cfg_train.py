@@ -23,13 +23,13 @@ from tqdm import trange
 import wandb
 import json
 from pprint import pprint
+import re
 
 # import os
 
 from CLIP import clip
 
 # Define utility functions
-
 
 @contextmanager
 def train_mode(model, mode=True):
@@ -735,6 +735,13 @@ def main():
         help="load checkpoint file path",
     )
     p.add_argument(
+        "--lightningcheckpoint",
+        type=Path,
+        default=None,
+        required=False,
+        help="load lightning mode checkpoint file path",
+    )
+    p.add_argument(
         "--batchsize",
         type=int,
         default=2,
@@ -852,7 +859,17 @@ def main():
         try:
             if args.checkpoint:
                 print(f"Trying torch state_dict model format")
-                model.load_state_dict(torch.load(args.checkpoint, map_location="cpu"))
+                checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
+                lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
+                state_dict_modified = {
+                    re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
+                }
+                ## Hacky fix for unexpected keys
+                for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
+                    _ = state_dict_modified.pop(k, None)
+                lightning_state_dict = deepcopy(lightning_model["state_dict"])
+                lightning_state_dict.update(state_dict_modified)
+                model.load_state_dict(lightning_state_dict)
             trainer.fit(model, train_dl, val_dl)
         except RuntimeError:
             print(f"Trying lightning model format")
@@ -861,7 +878,17 @@ def main():
         try:
             if args.checkpoint:
                 print(f"Trying torch state_dict model format")
-                model.load_state_dict(torch.load(args.checkpoint, map_location="cpu"))
+                checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
+                lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
+                state_dict_modified = {
+                    re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
+                }
+                ## Hacky fix for unexpected keys
+                for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
+                    _ = state_dict_modified.pop(k, None)
+                lightning_state_dict = deepcopy(lightning_model["state_dict"])
+                lightning_state_dict.update(state_dict_modified)
+                model.load_state_dict(lightning_state_dict)
             trainer.fit(model, train_dl)
         except RuntimeError:
             print(f"Trying lightning model format")
