@@ -806,6 +806,7 @@ def main():
         ## Split data 
         train_set, val_set = data.dataset.random_split(fulldata_set, [len(fulldata_set)-len(fulldata_set)//20, len(fulldata_set)//20])                                                                                                            
     else:
+        train_set = fulldata_set
         ## Choose dataset loader mode.
         if args.dataset_mode == "conceptual":
             val_set = ConceptualCaptions(args.val_set, "stems.txt", transform=tf, target_transform=ttf)
