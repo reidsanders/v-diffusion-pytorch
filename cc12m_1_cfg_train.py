@@ -858,10 +858,10 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
+    # wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
 
-    try:
-        if args.checkpoint:
+    if args.checkpoint:
+        try:
             print(f"Trying torch state_dict model format")
             checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
             lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
@@ -874,12 +874,14 @@ def main():
             lightning_state_dict = deepcopy(lightning_model["state_dict"])
             lightning_state_dict.update(state_dict_modified)
             model.load_state_dict(lightning_state_dict)
+            trainer.fit(model, train_dl, val_dl)
+        except RuntimeError:
+            print(f"Trying lightning model format")
+            trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
+    else:
         trainer.fit(model, train_dl, val_dl)
-    except RuntimeError:
-        print(f"Trying lightning model format")
-        trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
 
 if __name__ == "__main__":
     wandb.require(experiment="service")
-    wandb.setup()
+    # wandb.setup()
     main()
