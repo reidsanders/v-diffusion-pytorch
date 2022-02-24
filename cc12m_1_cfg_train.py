@@ -792,17 +792,39 @@ def main():
 
     def ttf(caption):
         return tok_wrap(caption).squeeze(0)
-
     ## Choose dataset loader mode.
     if args.dataset_mode == "conceptual":
-        train_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
+        fulldata_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
     elif args.dataset_mode == "json":
-        train_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
+        fulldata_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "json2":
-        train_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
+        fulldata_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "danbooru":
-        train_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
+        fulldata_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
 
+    if not args.val_set:
+        ## Split data 
+        train_set, val_set = data.dataset.random_split(train_set, [len(train_set)-len(train_set)//20, len(train_set)//20])                                                                                                            
+    else:
+        ## Choose dataset loader mode.
+        if args.dataset_mode == "conceptual":
+            val_set = ConceptualCaptions(args.val_set, "stems.txt", transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "json":
+            val_set = JsonCaptions(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "json2":
+            val_set = JsonCaptions2(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "danbooru":
+            val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
+
+    val_dl = data.DataLoader(
+        val_set,
+        args.batchsize,
+        shuffle=False,
+        worker_init_fn=worker_init_fn,
+        num_workers=96,
+        persistent_workers=True,
+        pin_memory=True,
+    )
     train_dl = data.DataLoader(
         train_set,
         args.batchsize,
@@ -836,65 +858,24 @@ def main():
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
 
-    if args.val_set:
-        ## Choose dataset loader mode.
-        if args.dataset_mode == "conceptual":
-            val_set = ConceptualCaptions(args.val_set, "stems.txt", transform=tf, target_transform=ttf)
-        elif args.dataset_mode == "json":
-            val_set = JsonCaptions(args.val_set, transform=tf, target_transform=ttf)
-        elif args.dataset_mode == "json2":
-            val_set = JsonCaptions2(args.val_set, transform=tf, target_transform=ttf)
-        elif args.dataset_mode == "danbooru":
-            val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
-        val_dl = data.DataLoader(
-            val_set,
-            args.batchsize,
-            shuffle=False,
-            worker_init_fn=worker_init_fn,
-            num_workers=96,
-            persistent_workers=True,
-            pin_memory=True,
-        )
-        try:
-            if args.checkpoint:
-                print(f"Trying torch state_dict model format")
-                checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
-                lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
-                state_dict_modified = {
-                    re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
-                }
-                ## Hacky fix for unexpected keys
-                for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
-                    _ = state_dict_modified.pop(k, None)
-                lightning_state_dict = deepcopy(lightning_model["state_dict"])
-                lightning_state_dict.update(state_dict_modified)
-                model.load_state_dict(lightning_state_dict)
-            trainer.fit(model, train_dl, val_dl)
-        except RuntimeError:
-            print(f"Trying lightning model format")
-            trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
-    else:
-        train, val = data.dataset.random_split(train_set, [len(train_set)-len(train_set)//20, len(train_set)//20])                                                                                                            
-        try:
-            if args.checkpoint:
-                print(f"Trying torch state_dict model format")
-                checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
-                lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
-                state_dict_modified = {
-                    re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
-                }
-                ## Hacky fix for unexpected keys
-                for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
-                    _ = state_dict_modified.pop(k, None)
-                lightning_state_dict = deepcopy(lightning_model["state_dict"])
-                lightning_state_dict.update(state_dict_modified)
-                model.load_state_dict(lightning_state_dict)
-            trainer.fit(model, train_dl)
-        except RuntimeError:
-            print(f"Trying lightning model format")
-            trainer.fit(model, train_dl, ckpt_path=args.checkpoint)
-
-
+    try:
+        if args.checkpoint:
+            print(f"Trying torch state_dict model format")
+            checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
+            lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
+            state_dict_modified = {
+                re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
+            }
+            ## Hacky fix for unexpected keys
+            for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
+                _ = state_dict_modified.pop(k, None)
+            lightning_state_dict = deepcopy(lightning_model["state_dict"])
+            lightning_state_dict.update(state_dict_modified)
+            model.load_state_dict(lightning_state_dict)
+        trainer.fit(model, train_dl, val_dl)
+    except RuntimeError:
+        print(f"Trying lightning model format")
+        trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
 
 if __name__ == "__main__":
     wandb.require(experiment="service")
