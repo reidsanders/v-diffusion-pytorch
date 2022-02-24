@@ -853,8 +853,8 @@ def main():
         callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
-        val_check_interval=.5,
-        profiler="simple",
+        # val_check_interval=.5,
+        # profiler="simple",
         accumulate_grad_batches={4:2,6:4,8:8,16:32,32:64,64:128,100:256},
         max_epochs=10,
     )
