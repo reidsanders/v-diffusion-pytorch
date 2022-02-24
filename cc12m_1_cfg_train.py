@@ -863,26 +863,25 @@ def main():
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     # wandb.config.update(vars(args))
 
-    if args.checkpoint:
-        try:
-            print(f"Trying torch state_dict model format")
-            checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
-            lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
-            state_dict_modified = {
-                re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
-            }
-            ## Hacky fix for unexpected keys
-            for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
-                _ = state_dict_modified.pop(k, None)
-            lightning_state_dict = deepcopy(lightning_model["state_dict"])
-            lightning_state_dict.update(state_dict_modified)
-            del checkpoint_loaded
-            del lightning_model
-            model.load_state_dict(lightning_state_dict)
-            trainer.fit(model, train_dl, val_dl)
-        except RuntimeError:
-            print(f"Trying lightning model format")
-            trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
+    if args.checkpoint and args.lightningcheckpoint:
+        print(f"Trying torch state_dict model format")
+        checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
+        lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
+        state_dict_modified = {
+            re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
+        }
+        ## Hacky fix for unexpected keys
+        for k in ["mapping_timestep_embed.weight", "mapping.0.main.0.weight", "mapping.0.main.0.bias", "mapping.0.main.2.weight", "mapping.0.main.2.bias", "mapping.0.skip.weight", "mapping.1.main.0.weight", "mapping.1.main.0.bias", "mapping.1.main.2.weight", "mapping.1.main.2.bias", "timestep_embed.weight"]:
+            _ = state_dict_modified.pop(k, None)
+        lightning_state_dict = deepcopy(lightning_model["state_dict"])
+        lightning_state_dict.update(state_dict_modified)
+        del checkpoint_loaded
+        del lightning_model
+        model.load_state_dict(lightning_state_dict)
+        trainer.fit(model, train_dl, val_dl)
+    elif args.checkpoint:
+        print(f"Trying lightning model format")
+        trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
     else:
         trainer.fit(model, train_dl, val_dl)
 
