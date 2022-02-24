@@ -859,7 +859,7 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    # wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
+    wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     # wandb.config.update(vars(args))
 
     if args.checkpoint:
@@ -886,6 +886,6 @@ def main():
         trainer.fit(model, train_dl, val_dl)
 
 if __name__ == "__main__":
-    # wandb.require(experiment="service")
-    # wandb.setup()
+    wandb.require(experiment="service")
+    wandb.setup()
     main()
