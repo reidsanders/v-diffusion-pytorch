@@ -809,7 +809,7 @@ def main():
     )
     p.add_argument(
         "--lr",
-        type=int,
+        type=float,
         default=3e-5,
         required=False,
         help="starting lr",
