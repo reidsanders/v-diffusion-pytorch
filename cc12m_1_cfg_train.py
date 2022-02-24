@@ -839,7 +839,7 @@ def main():
     model = LightningDiffusion()
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
-    ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=10000, save_top_k=2, monitor="train/loss")
+    ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     lr_monitor_callback = pl.callbacks.LearningRateMonitor(logging_interval='step')
 
@@ -853,8 +853,9 @@ def main():
         callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
-        #val_check_interval=1,
+        val_check_interval=.5,
         profiler="simple",
+        accumulate_grad_batches={2:2,4:4,8:16,16:32,32:64,64:128},
         max_epochs=10,
     )
     args = p.parse_args()
