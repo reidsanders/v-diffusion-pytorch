@@ -675,7 +675,7 @@ class DemoCallback(pl.Callback):
 
     @rank_zero_only
     @torch.no_grad()
-    def on_train_batch_end(self, trainer, module):
+    def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx, unused=0):
         if trainer.global_step == 0 or trainer.global_step % 1 != 0:
             return
 
@@ -705,7 +705,7 @@ class MetricsCallback(pl.Callback):
 
     @rank_zero_only
     @torch.no_grad()
-    def on_train_batch_end(self, trainer, module):
+    def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx, unused=0):
         if trainer.global_step == 0 or trainer.global_step % 1000 != 0:
             return
         log_dict = {"metrics_report": wandb.Html(f"<pre>{met.metrics_report()}</pre>")}
