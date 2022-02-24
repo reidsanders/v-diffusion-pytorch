@@ -804,7 +804,7 @@ def main():
 
     if not args.val_set:
         ## Split data 
-        train_set, val_set = data.dataset.random_split(train_set, [len(train_set)-len(train_set)//20, len(train_set)//20])                                                                                                            
+        train_set, val_set = data.dataset.random_split(fulldata_set, [len(fulldata_set)-len(fulldata_set)//20, len(fulldata_set)//20])                                                                                                            
     else:
         ## Choose dataset loader mode.
         if args.dataset_mode == "conceptual":
