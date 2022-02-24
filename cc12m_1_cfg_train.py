@@ -705,7 +705,7 @@ class MetricsCallback(pl.Callback):
 
     @rank_zero_only
     @torch.no_grad()
-    def on_batch_end(self, trainer, module):
+    def on_train_batch_end(self, trainer, module):
         if trainer.global_step == 0 or trainer.global_step % 1000 != 0:
             return
         log_dict = {"metrics_report": wandb.Html(f"<pre>{met.metrics_report()}</pre>")}
@@ -841,6 +841,8 @@ def main():
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=10000, save_top_k=2, monitor="train/loss")
     demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
+    lr_monitor_callback = pl.callbacks.LearningRateMonitor(logging_interval='step')
+
     metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
     pl.Trainer.add_argparse_args(p)
