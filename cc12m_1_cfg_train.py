@@ -863,6 +863,7 @@ def main():
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     # wandb.config.update(vars(args))
+    wandb.config.testval = 87
 
     if args.checkpoint and args.lightningcheckpoint:
         print(f"Trying torch state_dict model format")
