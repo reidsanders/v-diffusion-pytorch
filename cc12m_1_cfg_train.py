@@ -850,10 +850,11 @@ def main():
         tpu_cores=8,
         num_nodes=1,
         precision="bf16",
-        callbacks=[ckpt_callback, exc_callback, metrics_callback],
+        callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
         #val_check_interval=1,
+        profiler="simple",
         max_epochs=10,
     )
     args = p.parse_args()
@@ -874,6 +875,8 @@ def main():
                 _ = state_dict_modified.pop(k, None)
             lightning_state_dict = deepcopy(lightning_model["state_dict"])
             lightning_state_dict.update(state_dict_modified)
+            del checkpoint_loaded
+            del lightning_model
             model.load_state_dict(lightning_state_dict)
             trainer.fit(model, train_dl, val_dl)
         except RuntimeError:
@@ -883,6 +886,6 @@ def main():
         trainer.fit(model, train_dl, val_dl)
 
 if __name__ == "__main__":
-    wandb.require(experiment="service")
+    # wandb.require(experiment="service")
     # wandb.setup()
     main()
