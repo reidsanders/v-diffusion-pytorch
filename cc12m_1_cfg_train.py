@@ -641,17 +641,22 @@ class ToMode:
 
 
 class LightningDiffusion(pl.LightningModule):
-    def __init__(self, total_steps=1e20, lr=3e-5, eps=1e-5, gamma=.95, weight_decay=0.01, scheduler=None):
+    def __init__(
+        self, epochs=20, steps_per_epoch=10000, lr=3e-5, eps=1e-5, gamma=0.95, weight_decay=0.01, scheduler=None
+    ):
         super().__init__()
         self.model = DiffusionModel()
         self.model_ema = deepcopy(self.model)
         self.clip_model = clip.load("ViT-B/16", "cpu", jit=False)[0].eval().requires_grad_(False)
         self.rng = torch.quasirandom.SobolEngine(1, scramble=True)
+        self.epochs = epochs
+        self.steps_per_epoch = steps_per_epoch
         self.lr = lr
         self.total_steps = total_steps
         self.eps = eps
         self.weight_decay = weight_decay
         self.gamma = gamma
+        self.scheduler = scheduler
 
     def forward(self, *args, **kwargs):
         if self.training:
@@ -662,10 +667,10 @@ class LightningDiffusion(pl.LightningModule):
         optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
         if self.scheduler == "onecyclelr":
             lr_scheduler = optim.lr_scheduler.OneCycleLR(
-                optimizer, self.lr * 20, total_steps=self.total_steps
+                optimizer, self.lr * 20, epochs=self.epochs, steps_per_epoch=self.steps_per_epoch
             )
         elif self.scheduler == "cosineannealingwarmrestarts":
-            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=self.total_steps//10000)
+            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=epochs)
         elif self.scheduler == "exponentiallr":
             lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, gamma=self.gamma)
         else:
@@ -892,13 +897,6 @@ def main():
         help="project name for logging",
     )
     p.add_argument(
-        "--total_steps_for_optimizer",
-        type=int,
-        default=999999999999,
-        required=False,
-        help="estimate of max steps for optimizer",
-    )
-    p.add_argument(
         "--lr",
         type=float,
         default=3e-5,
@@ -908,7 +906,7 @@ def main():
     p.add_argument(
         "--gamma",
         type=float,
-        default=.95,
+        default=0.95,
         required=False,
         help="exponential decay gamma for lr",
     )
@@ -1003,7 +1001,9 @@ def main():
     )
     demo_prompts = [line.rstrip() for line in open(args.demo_prompts).readlines()]
 
-    model = LightningDiffusion(total_steps=args.total_steps_for_optimizer, lr=args.lr, gamma=args.gamma, scheduler=args.scheduler)
+    model = LightningDiffusion(
+        epochs=args.max_epochs, steps_per_epoch=len(train_dl), lr=args.lr, gamma=args.gamma, scheduler=args.scheduler
+    )
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
