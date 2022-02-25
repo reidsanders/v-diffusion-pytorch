@@ -625,11 +625,11 @@ class LightningDiffusion(pl.LightningModule):
             # The unit of the scheduler's step size, could also be 'step'.
             # 'epoch' updates the scheduler on epoch end whereas 'step'
             # updates it after a optimizer update.
-            "interval": "epoch",
+            "interval": "step",
             # How many epochs/steps should pass between calls to
             # `scheduler.step()`. 1 corresponds to updating the learning
             # rate after every epoch/step.
-            "frequency": 1,
+            "frequency": 10,
             # Metric to to monitor for schedulers like `ReduceLROnPlateau`
             "monitor": "val/loss",
             # If set to `True`, will enforce that the value specified 'monitor'
