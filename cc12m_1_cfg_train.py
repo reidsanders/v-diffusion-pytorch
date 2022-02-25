@@ -643,7 +643,8 @@ def extract_and_rename_lightning_state_dict(checkpoint, lightningcheckpoint):
         "timestep_embed.weight",
     ]:
         _ = state_dict_modified.pop(k, None)
-    lightning_state_dict = lightning_model["state_dict"].update(state_dict_modified)
+    lightning_state_dict = lightning_model["state_dict"]
+    lightning_state_dict.update(state_dict_modified)
     return lightning_state_dict
 
 
