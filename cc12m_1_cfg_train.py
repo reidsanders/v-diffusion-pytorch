@@ -489,7 +489,6 @@ class JsonTextCaptions(data.Dataset):
                     f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
-                return self[random.randrange(len(self))]
         except Exception as err:
             print(f"{type(err).__name__}: {err!s}", file=sys.stderr)
             # return self[random.randrange(len(self))]
@@ -898,6 +897,14 @@ def main():
         required=False,
         help="starting lr",
     )
+    p.add_argument(
+        "--restore_train_state",
+        type=bool,
+        action="store_true",
+        default=False,
+        required=False,
+        help="restore lightning training state",
+    )
     args = p.parse_known_args()[0]
     print(f"Starting train on {args.train_set}")
 
@@ -1031,9 +1038,12 @@ def main():
         del lightning_model
         model.load_state_dict(lightning_state_dict)
         trainer.fit(model, train_dl, val_dl)
-    elif args.checkpoint:
+    elif args.checkpoint and args.restore_train_state:
         print(f"Trying lightning model format")
         trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
+    elif args.checkpoint:
+        model.load_from_checkpoint(args.checkpoint)
+        trainer.fit(model, train_dl, val_dl)
     else:
         trainer.fit(model, train_dl, val_dl)
 
