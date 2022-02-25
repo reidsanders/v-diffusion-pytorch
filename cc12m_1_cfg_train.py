@@ -6,12 +6,11 @@ from copy import deepcopy
 from functools import partial
 import math
 import random
-from pathlib import Path, PosixPath
+from pathlib import Path
 import sys
 import os
+import re
 import shlex
-
-from PIL import Image
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.distributed import rank_zero_only
 import torch
@@ -23,10 +22,8 @@ from torchvision import transforms, utils
 from torchvision.transforms import functional as TF
 from tqdm import trange
 import wandb
-import json
-from pprint import pprint
-import re
 from CLIP import clip
+from .dataloaders import DanbooruCaptions, DrawtextCaptions, ConceptualCaptions, GoodbotCaptions, JsonTextCaptions
 
 # Define utility functions
 
@@ -411,227 +408,6 @@ class TokenizerWrapper:
         return result
 
 
-class DrawtextCaptions(data.Dataset):
-    def __init__(self, root, transform=None, target_transform=None):
-        self.root = root
-        self.indexfile = Path(root) / "index.json"
-        self.transform = transform
-        self.target_transform = target_transform
-        with open(self.indexfile, "r") as f:
-            self.dataindex = json.loads(f.read())
-            self.data = self.dataindex["data"]
-        print(f"Captions Data: found {len(self.data)} images.", file=sys.stderr)
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        try:
-            try:
-                text, image_path = self.data[index]
-                image = Image.open(Path(self.root) / image_path)
-                if self.transform is not None:
-                    image = self.transform(image)
-                if self.target_transform is not None:
-                    text = self.target_transform(text)
-                return image, text
-            except (
-                OSError,
-                ValueError,
-                Image.DecompressionBombError,
-                Image.UnidentifiedImageError,
-            ) as err:
-                print(
-                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
-                    file=sys.stderr,
-                )
-                return self[random.randrange(len(self))]
-        except Exception as err:
-            print(f"{type(err).__name__}: {err!s}", file=sys.stderr)
-            # return self[random.randrange(len(self))]
-            raise
-
-
-class JsonTextCaptions(data.Dataset):
-    def __init__(self, root, transform=None, target_transform=None):
-        self.root = root
-        self.indexfile = Path(root) / "index.json"
-        self.transform = transform
-        self.target_transform = target_transform
-        with open(self.indexfile, "r") as f:
-            self.dataindex = json.loads(f.read())
-            self.data = self.dataindex["data"]
-        print(f"Captions Data: found {len(self.data)} images.", file=sys.stderr)
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        try:
-            try:
-                datapoint = self.data[index]
-                text = datapoint["text"]
-                image_path = Path(self.root) / datapoint["filename"]
-                image = Image.open(image_path)
-
-                if self.transform is not None:
-                    image = self.transform(image)
-                if self.target_transform is not None:
-                    text = self.target_transform(text)
-                return image, text
-            except (
-                OSError,
-                ValueError,
-                Image.DecompressionBombError,
-                Image.UnidentifiedImageError,
-            ) as err:
-                print(
-                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
-                    file=sys.stderr,
-                )
-        except Exception as err:
-            print(f"{type(err).__name__}: {err!s}", file=sys.stderr)
-            # return self[random.randrange(len(self))]
-            raise
-
-
-class GoodbotCaptions(data.Dataset):
-    def __init__(self, root, transform=None, target_transform=None):
-        self.root = root
-        self.indexfile = Path(root) / "index.json"
-        self.transform = transform
-        self.target_transform = target_transform
-        with open(self.indexfile, "r") as f:
-            self.dataindex = json.loads(f.read())
-            self.data = self.dataindex["data"]
-        print(f"Captions Data: found {len(self.data)} images.", file=sys.stderr)
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        try:
-            try:
-                datapoint = self.data[index]
-                text = datapoint["text"]
-                image_path = Path(self.root) / datapoint["filename"]
-                image = Image.open(image_path)
-
-                if self.transform is not None:
-                    image = self.transform(image)
-                if self.target_transform is not None:
-                    text = self.target_transform(text)
-                return image, text
-            except (
-                OSError,
-                ValueError,
-                Image.DecompressionBombError,
-                Image.UnidentifiedImageError,
-            ) as err:
-                print(
-                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
-                    file=sys.stderr,
-                )
-                return self[random.randrange(len(self))]
-        except Exception as err:
-            print(f"{type(err).__name__}: {err!s}", file=sys.stderr)
-            # return self[random.randrange(len(self))]
-            raise
-
-
-class DanbooruCaptions(data.Dataset):
-    def __init__(self, root, transform=None, target_transform=None):
-        self.root = root
-        self.indexfile = Path(root) / "index.json"
-        self.transform = transform
-        self.target_transform = target_transform
-        with open(self.indexfile, "r") as f:
-            self.dataindex = json.loads(f.read())
-            self.data = self.dataindex["data"]
-        print(f"Captions Data: found {len(self.data)} images.", file=sys.stderr)
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        try:
-            try:
-                datapoint = self.data[index]
-                image_path = Path(self.root) / datapoint["filename"]
-                image = Image.open(image_path)
-                tags = [example["name"] for example in datapoint["tags"]]
-                text = (
-                    f"A drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
-                )
-                # TODO log this text?
-                if self.transform is not None:
-                    image = self.transform(image)
-                if self.target_transform is not None:
-                    text = self.target_transform(text)
-                return image, text
-            except (
-                OSError,
-                ValueError,
-                Image.DecompressionBombError,
-                Image.UnidentifiedImageError,
-            ) as err:
-                print(
-                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
-                    file=sys.stderr,
-                )
-                return self[random.randrange(len(self))]
-        except Exception as err:
-            print(f"{type(err).__name__}: {err!s}", file=sys.stderr)
-            # return self[random.randrange(len(self))]
-            raise
-
-
-class ConceptualCaptions(data.Dataset):
-    def __init__(self, root, stems_list, transform=None, target_transform=None):
-        self.images_root = Path(root) / "images"
-        self.texts_root = Path(root) / "texts"
-        self.transform = transform
-        self.target_transform = target_transform
-        # self.stems = sorted(path.stem for path in self.images_root.glob('*/*.jpg'))
-        self.stems = [line.rstrip() for line in open(stems_list).readlines()]
-        print(f"Conceptual Captions: found {len(self.stems)} images.", file=sys.stderr)
-
-    def _get_image_text(self, stem):
-        image = self.images_root / stem[:5] / (stem + ".jpg")
-        text = self.texts_root / stem[:5] / (stem + ".txt")
-        return image, text
-
-    def __len__(self):
-        return len(self.stems)
-
-    def __getitem__(self, index):
-        try:
-            try:
-                image_path, text_path = self._get_image_text(self.stems[index])
-                image = Image.open(image_path)
-                text = text_path.read_text()
-                if self.transform is not None:
-                    image = self.transform(image)
-                if self.target_transform is not None:
-                    text = self.target_transform(text)
-                return image, text
-            except (
-                OSError,
-                ValueError,
-                Image.DecompressionBombError,
-                Image.UnidentifiedImageError,
-            ) as err:
-                print(
-                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
-                    file=sys.stderr,
-                )
-                return self[random.randrange(len(self))]
-        except Exception as err:
-            print(f"{type(err).__name__}: {err!s}", file=sys.stderr)
-            # return self[random.randrange(len(self))]
-            raise
-
-
 class ToMode:
     def __init__(self, mode):
         self.mode = mode
@@ -669,7 +445,7 @@ class LightningDiffusion(pl.LightningModule):
                 optimizer, self.lr * 20, epochs=self.epochs, steps_per_epoch=self.steps_per_epoch
             )
         elif self.scheduler == "cosineannealingwarmrestarts":
-            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=sel.fepochs)
+            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=self.epochs)
         elif self.scheduler == "exponentiallr":
             lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, gamma=self.gamma)
         else:
@@ -809,6 +585,7 @@ def worker_init_fn(worker_id):
 
 def get_orig_cmd(max_width=80, full_python_path=False):
     """
+    form
     Return the original command line string that can be replayed
     nicely and wrapped for 80 char width
     Args:
@@ -843,6 +620,31 @@ def get_orig_cmd(max_width=80, full_python_path=False):
             lines.append(current_line)
             current_line = ""
     return " ".join(lines)
+
+
+def extract_and_rename_lightning_state_dict(checkpoint, lightningcheckpoint):
+    checkpoint_loaded = torch.load(checkpoint, map_location="cpu")
+    lightning_model = torch.load(lightningcheckpoint, map_location="cpu")
+    state_dict_modified = {
+        re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
+    }
+    ## Hacky fix for unexpected keys
+    for k in [
+        "mapping_timestep_embed.weight",
+        "mapping.0.main.0.weight",
+        "mapping.0.main.0.bias",
+        "mapping.0.main.2.weight",
+        "mapping.0.main.2.bias",
+        "mapping.0.skip.weight",
+        "mapping.1.main.0.weight",
+        "mapping.1.main.0.bias",
+        "mapping.1.main.2.weight",
+        "mapping.1.main.2.bias",
+        "timestep_embed.weight",
+    ]:
+        _ = state_dict_modified.pop(k, None)
+    lightning_state_dict = lightning_model["state_dict"].update(state_dict_modified)
+    return lightning_state_dict
 
 
 def main():
@@ -1008,7 +810,11 @@ def main():
     demo_prompts = [line.rstrip() for line in open(args.demo_prompts).readlines()]
 
     model = LightningDiffusion(
-        epochs=args.scheduler_epochs, steps_per_epoch=len(train_dl), lr=args.lr, gamma=args.gamma, scheduler=args.scheduler
+        epochs=args.scheduler_epochs,
+        steps_per_epoch=len(train_dl),
+        lr=args.lr,
+        gamma=args.gamma,
+        scheduler=args.scheduler,
     )
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
@@ -1026,8 +832,7 @@ def main():
         callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
-        # val_check_interval=.5,
-        # profiler="simple",
+        val_check_interval=0.5,
         accumulate_grad_batches={1: 1, 3: 2, 6: 4, 8: 8, 16: 32, 32: 64, 64: 128, 100: 256},
         max_epochs=10,
     )
@@ -1039,36 +844,12 @@ def main():
         wandb.config[str(k)] = v
     wandb.config["command"] = get_orig_cmd()
 
+    ### Load checkpoint. There are different naming schemes, so this handles different options
     if args.checkpoint and args.lightningcheckpoint:
-        print(f"Trying torch state_dict model format")
-        checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
-        lightning_model = torch.load(args.lightningcheckpoint, map_location="cpu")
-        state_dict_modified = {
-            re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
-        }
-        ## Hacky fix for unexpected keys
-        for k in [
-            "mapping_timestep_embed.weight",
-            "mapping.0.main.0.weight",
-            "mapping.0.main.0.bias",
-            "mapping.0.main.2.weight",
-            "mapping.0.main.2.bias",
-            "mapping.0.skip.weight",
-            "mapping.1.main.0.weight",
-            "mapping.1.main.0.bias",
-            "mapping.1.main.2.weight",
-            "mapping.1.main.2.bias",
-            "timestep_embed.weight",
-        ]:
-            _ = state_dict_modified.pop(k, None)
-        lightning_state_dict = deepcopy(lightning_model["state_dict"])
-        lightning_state_dict.update(state_dict_modified)
-        del checkpoint_loaded
-        del lightning_model
+        lightning_state_dict = extract_and_rename_lightning_state_dict(args.checkpoint, args.lightningcheckpoint)
         model.load_state_dict(lightning_state_dict)
         trainer.fit(model, train_dl, val_dl)
     elif args.checkpoint and args.restore_train_state:
-        print(f"Trying lightning model format")
         trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
     elif args.checkpoint:
         model.load_from_checkpoint(args.checkpoint)
@@ -1078,6 +859,6 @@ def main():
 
 
 if __name__ == "__main__":
-    wandb.require(experiment="service")
+    wandb.require(experiment="service")  # Else crashes on multiple tpu cores
     wandb.setup()
     main()
