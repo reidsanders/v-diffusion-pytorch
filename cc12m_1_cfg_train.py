@@ -859,6 +859,7 @@ def main():
 
 
 if __name__ == "__main__":
-    wandb.require(experiment="service")  # Else crashes on multiple tpu cores
+    # Fix crashes on multiple tpu cores, but breaks stdout logging
+    wandb.require(experiment="service")  
     wandb.setup()
     main()
