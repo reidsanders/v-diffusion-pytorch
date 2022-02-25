@@ -623,7 +623,7 @@ class LightningDiffusion(pl.LightningModule):
             #     optimizer, self.lr * 20, total_steps=self.total_steps
             # ),
             "scheduler": optim.lr_scheduler.CosineAnnealingWarmRestarts(
-                optimizer
+                optimizer, 1
             ),
             # The unit of the scheduler's step size, could also be 'step'.
             # 'epoch' updates the scheduler on epoch end whereas 'step'
