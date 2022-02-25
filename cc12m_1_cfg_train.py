@@ -873,11 +873,11 @@ def main():
         help="batchsize for training",
     )
     p.add_argument(
-        "--max_epochs",
+        "--scheduler_epochs",
         type=int,
         default=20,
         required=False,
-        help="max epochs for training",
+        help="epochs to pass to lr scheduler",
     )
     p.add_argument(
         "--imgsize",
@@ -1008,7 +1008,7 @@ def main():
     demo_prompts = [line.rstrip() for line in open(args.demo_prompts).readlines()]
 
     model = LightningDiffusion(
-        epochs=args.max_epochs, steps_per_epoch=len(train_dl), lr=args.lr, gamma=args.gamma, scheduler=args.scheduler
+        epochs=args.scheduler_epochs, steps_per_epoch=len(train_dl), lr=args.lr, gamma=args.gamma, scheduler=args.scheduler
     )
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
