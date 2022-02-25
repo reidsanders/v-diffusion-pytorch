@@ -899,7 +899,6 @@ def main():
     )
     p.add_argument(
         "--restore_train_state",
-        type=bool,
         action="store_true",
         default=False,
         required=False,
