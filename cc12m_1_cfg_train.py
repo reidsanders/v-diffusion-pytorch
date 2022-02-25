@@ -8,6 +8,8 @@ import math
 import random
 from pathlib import Path, PosixPath
 import sys
+import os
+import shlex
 
 from PIL import Image
 import pytorch_lightning as pl
@@ -24,9 +26,6 @@ import wandb
 import json
 from pprint import pprint
 import re
-
-# import os
-
 from CLIP import clip
 
 # Define utility functions
@@ -412,7 +411,7 @@ class TokenizerWrapper:
         return result
 
 
-class JsonCaptions(data.Dataset):
+class DrawtextCaptions(data.Dataset):
     def __init__(self, root, transform=None, target_transform=None):
         self.root = root
         self.indexfile = Path(root) / "index.json"
@@ -453,7 +452,7 @@ class JsonCaptions(data.Dataset):
             raise
 
 
-class JsonCaptions2(data.Dataset):
+class DrawtextFontCaptions(data.Dataset):
     def __init__(self, root, transform=None, target_transform=None):
         self.root = root
         self.indexfile = Path(root) / "index.json"
@@ -475,6 +474,49 @@ class JsonCaptions2(data.Dataset):
                 image = Image.open(Path(self.root) / datapoint["filename"])
                 font = datapoint["font"]
                 text = f"<<<FONT:{font}>>> {text}"
+
+                if self.transform is not None:
+                    image = self.transform(image)
+                if self.target_transform is not None:
+                    text = self.target_transform(text)
+                return image, text
+            except (
+                OSError,
+                ValueError,
+                Image.DecompressionBombError,
+                Image.UnidentifiedImageError,
+            ) as err:
+                print(
+                    f"Bad image, skipping: {index} {image} " f"{type(err).__name__}: {err!s}",
+                    file=sys.stderr,
+                )
+                return self[random.randrange(len(self))]
+        except Exception as err:
+            print(f"{type(err).__name__}: {err!s}", file=sys.stderr)
+            # return self[random.randrange(len(self))]
+            raise
+
+
+class GoodbotCaptions(data.Dataset):
+    def __init__(self, root, transform=None, target_transform=None):
+        self.root = root
+        self.indexfile = Path(root) / "index.json"
+        self.transform = transform
+        self.target_transform = target_transform
+        with open(self.indexfile, "r") as f:
+            self.dataindex = json.loads(f.read())
+            self.data = self.dataindex["data"]
+        print(f"Captions Data: found {len(self.data)} images.", file=sys.stderr)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        try:
+            try:
+                datapoint = self.data[index]
+                text = datapoint["text"]
+                image = Image.open(Path(self.root) / datapoint["filename"])
 
                 if self.transform is not None:
                     image = self.transform(image)
@@ -622,9 +664,7 @@ class LightningDiffusion(pl.LightningModule):
             # "scheduler": optim.lr_scheduler.OneCycleLR(
             #     optimizer, self.lr * 20, total_steps=self.total_steps
             # ),
-            "scheduler": optim.lr_scheduler.CosineAnnealingWarmRestarts(
-                optimizer, 1
-            ),
+            "scheduler": optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1),
             # The unit of the scheduler's step size, could also be 'step'.
             # 'epoch' updates the scheduler on epoch end whereas 'step'
             # updates it after a optimizer update.
@@ -755,6 +795,44 @@ def worker_init_fn(worker_id):
     random.seed(torch.initial_seed())
 
 
+def get_orig_cmd(max_width=80, full_python_path=False):
+    """
+    Return the original command line string that can be replayed
+    nicely and wrapped for 80 char width
+    Args:
+        - max_width: the width to wrap for. defaults to 80
+        - full_python_path: whether to replicate the full path
+          or just the last part (i.e. `python`). default to `False`
+    """
+
+    cmd = []
+
+    # deal with critical env vars
+    # env_keys = ["CUDA_VISIBLE_DEVICES"]
+    env_keys = []
+    for key in env_keys:
+        val = os.environ.get(key, None)
+        if val is not None:
+            cmd.append(f"{key}={val}")
+
+    # python executable (not always needed if the script is executable)
+    python = sys.executable if full_python_path else sys.executable.split("/")[-1]
+    cmd.append(python)
+
+    # now the normal args
+    cmd += list(map(shlex.quote, sys.argv))
+
+    # split up into up to MAX_WIDTH lines with shell multi-line escapes
+    lines = []
+    current_line = ""
+    while len(cmd) > 0:
+        current_line += f"{cmd.pop(0)} "
+        if len(cmd) == 0 or len(current_line) + len(cmd[0]) + 1 > max_width - 1:
+            lines.append(current_line)
+            current_line = ""
+    return "\\\n".join(lines)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--train_set", type=Path, required=True, help="the training set location")
@@ -791,10 +869,12 @@ def main():
     )
     p.add_argument(
         "--dataset_mode",
-        type=str,
-        default="json2",
+        default="drawtext",
+        const="drawtext",
         required=False,
-        help='Dataset mode to use: "conceptual, json, json2, danbooru"',
+        nargs="?",
+        choices=("conceptual", "drawtext", "font", "danbooru", "goodbot"),
+        help="choose dataset loader mode (default: %(default)s)",
     )
     p.add_argument(
         "--project_name",
@@ -844,11 +924,13 @@ def main():
     ## Choose dataset loader mode.
     if args.dataset_mode == "conceptual":
         fulldata_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
-    elif args.dataset_mode == "json":
-        fulldata_set = JsonCaptions(args.train_set, transform=tf, target_transform=ttf)
-    elif args.dataset_mode == "json2":
-        fulldata_set = JsonCaptions2(args.train_set, transform=tf, target_transform=ttf)
+    elif args.dataset_mode == "drawing":
+        fulldata_set = DrawtextCaptions(args.train_set, transform=tf, target_transform=ttf)
+    elif args.dataset_mode == "font":
+        fulldata_set = DrawtextFontCaptions(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "danbooru":
+        fulldata_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
+    elif args.dataset_mode == "goodbot":
         fulldata_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
 
     if not args.val_set:
@@ -861,11 +943,13 @@ def main():
         ## Choose dataset loader mode.
         if args.dataset_mode == "conceptual":
             val_set = ConceptualCaptions(args.val_set, "stems.txt", transform=tf, target_transform=ttf)
-        elif args.dataset_mode == "json":
-            val_set = JsonCaptions(args.val_set, transform=tf, target_transform=ttf)
-        elif args.dataset_mode == "json2":
-            val_set = JsonCaptions2(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "drawing":
+            val_set = DrawtextCaptions(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "font":
+            val_set = DrawtextFontCaptions(args.val_set, transform=tf, target_transform=ttf)
         elif args.dataset_mode == "danbooru":
+            val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "goodbot":
             val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
 
     val_dl = data.DataLoader(
@@ -914,8 +998,9 @@ def main():
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     # wandb.config.update(vars(args))
-    for k,v in vars(args).items():
+    for k, v in vars(args).items():
         wandb.config[str(k)] = v
+    wandb.config["command"] = get_orig_cmd()
 
     if args.checkpoint and args.lightningcheckpoint:
         print(f"Trying torch state_dict model format")
