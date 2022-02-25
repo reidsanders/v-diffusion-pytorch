@@ -621,7 +621,7 @@ class LightningDiffusion(pl.LightningModule):
             # REQUIRED: The scheduler instance
             "scheduler": optim.lr_scheduler.OneCycleLR(
                 optimizer, self.lr * 20, total_steps=self.total_steps
-            ),  # TODO test out
+            ),
             # The unit of the scheduler's step size, could also be 'step'.
             # 'epoch' updates the scheduler on epoch end whereas 'step'
             # updates it after a optimizer update.
@@ -639,7 +639,7 @@ class LightningDiffusion(pl.LightningModule):
             # If using the `LearningRateMonitor` callback to monitor the
             # learning rate progress, this keyword can be used to specify
             # a custom logged name
-            "name": "Reduce on Plateau Scheduler",
+            # "name": "Reduce on Plateau Scheduler",
         }
 
         return {
@@ -911,7 +911,8 @@ def main():
     trainer = pl.Trainer.from_argparse_args(args)
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     # wandb.config.update(vars(args))
-    wandb.config.testval = 87
+    for k,v in vars(args).items():
+        wandb.config[str(k)] = v
 
     if args.checkpoint and args.lightningcheckpoint:
         print(f"Trying torch state_dict model format")
