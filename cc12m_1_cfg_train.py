@@ -641,7 +641,7 @@ class ToMode:
 
 
 class LightningDiffusion(pl.LightningModule):
-    def __init__(self, total_steps=1e20, lr=3e-5, eps=1e-5, weight_decay=0.01):
+    def __init__(self, total_steps=1e20, lr=3e-5, eps=1e-5, gamma=.95, weight_decay=0.01, scheduler=None):
         super().__init__()
         self.model = DiffusionModel()
         self.model_ema = deepcopy(self.model)
@@ -651,6 +651,7 @@ class LightningDiffusion(pl.LightningModule):
         self.total_steps = total_steps
         self.eps = eps
         self.weight_decay = weight_decay
+        self.gamma = gamma
 
     def forward(self, *args, **kwargs):
         if self.training:
@@ -659,12 +660,19 @@ class LightningDiffusion(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
+        if self.scheduler == "onecyclelr":
+            lr_scheduler = optim.lr_scheduler.OneCycleLR(
+                optimizer, self.lr * 20, total_steps=self.total_steps
+            )
+        elif self.scheduler == "cosineannealingwarmrestarts":
+            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=self.total_steps//10000)
+        elif self.scheduler == "exponentiallr":
+            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, gamma=self.gamma)
+        else:
+            lr_scheduler = self.scheduler
         lr_scheduler_config = {
             # REQUIRED: The scheduler instance
-            # "scheduler": optim.lr_scheduler.OneCycleLR(
-            #     optimizer, self.lr * 20, total_steps=self.total_steps
-            # ),
-            "scheduler": optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1),
+            "scheduler": lr_scheduler,
             # The unit of the scheduler's step size, could also be 'step'.
             # 'epoch' updates the scheduler on epoch end whereas 'step'
             # updates it after a optimizer update.
@@ -898,6 +906,22 @@ def main():
         help="starting lr",
     )
     p.add_argument(
+        "--gamma",
+        type=float,
+        default=.95,
+        required=False,
+        help="exponential decay gamma for lr",
+    )
+    p.add_argument(
+        "--scheduler",
+        default=None,
+        const=None,
+        required=False,
+        nargs="?",
+        choices=("cosineannealingwarmrestarts", "exponentiallr", "onecyclelr"),
+        help="choose dataset loader mode (default: %(default)s)",
+    )
+    p.add_argument(
         "--restore_train_state",
         action="store_true",
         default=False,
@@ -979,7 +1003,7 @@ def main():
     )
     demo_prompts = [line.rstrip() for line in open(args.demo_prompts).readlines()]
 
-    model = LightningDiffusion(total_steps=args.total_steps_for_optimizer, lr=args.lr)
+    model = LightningDiffusion(total_steps=args.total_steps_for_optimizer, lr=args.lr, gamma=args.gamma, scheduler=args.scheduler)
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
