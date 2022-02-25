@@ -452,7 +452,7 @@ class DrawtextCaptions(data.Dataset):
             raise
 
 
-class DrawtextFontCaptions(data.Dataset):
+class JsonTextCaptions(data.Dataset):
     def __init__(self, root, transform=None, target_transform=None):
         self.root = root
         self.indexfile = Path(root) / "index.json"
@@ -472,8 +472,6 @@ class DrawtextFontCaptions(data.Dataset):
                 datapoint = self.data[index]
                 text = datapoint["text"]
                 image = Image.open(Path(self.root) / datapoint["filename"])
-                font = datapoint["font"]
-                text = f"<<<FONT:{font}>>> {text}"
 
                 if self.transform is not None:
                     image = self.transform(image)
@@ -873,7 +871,7 @@ def main():
         const="drawtext",
         required=False,
         nargs="?",
-        choices=("conceptual", "drawtext", "font", "danbooru", "goodbot"),
+        choices=("conceptual", "drawtext", "text", "danbooru", "goodbot"),
         help="choose dataset loader mode (default: %(default)s)",
     )
     p.add_argument(
@@ -926,8 +924,8 @@ def main():
         fulldata_set = ConceptualCaptions(args.train_set, "stems.txt", transform=tf, target_transform=ttf)
     elif args.dataset_mode == "drawing":
         fulldata_set = DrawtextCaptions(args.train_set, transform=tf, target_transform=ttf)
-    elif args.dataset_mode == "font":
-        fulldata_set = DrawtextFontCaptions(args.train_set, transform=tf, target_transform=ttf)
+    elif args.dataset_mode == "text":
+        fulldata_set = JsonTextCaptions(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "danbooru":
         fulldata_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "goodbot":
@@ -945,8 +943,8 @@ def main():
             val_set = ConceptualCaptions(args.val_set, "stems.txt", transform=tf, target_transform=ttf)
         elif args.dataset_mode == "drawing":
             val_set = DrawtextCaptions(args.val_set, transform=tf, target_transform=ttf)
-        elif args.dataset_mode == "font":
-            val_set = DrawtextFontCaptions(args.val_set, transform=tf, target_transform=ttf)
+        elif args.dataset_mode == "text":
+            val_set = JsonTextCaptions(args.val_set, transform=tf, target_transform=ttf)
         elif args.dataset_mode == "danbooru":
             val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
         elif args.dataset_mode == "goodbot":
