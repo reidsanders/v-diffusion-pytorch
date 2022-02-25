@@ -652,7 +652,6 @@ class LightningDiffusion(pl.LightningModule):
         self.epochs = epochs
         self.steps_per_epoch = steps_per_epoch
         self.lr = lr
-        self.total_steps = total_steps
         self.eps = eps
         self.weight_decay = weight_decay
         self.gamma = gamma
@@ -670,7 +669,7 @@ class LightningDiffusion(pl.LightningModule):
                 optimizer, self.lr * 20, epochs=self.epochs, steps_per_epoch=self.steps_per_epoch
             )
         elif self.scheduler == "cosineannealingwarmrestarts":
-            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=epochs)
+            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=sel.fepochs)
         elif self.scheduler == "exponentiallr":
             lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, gamma=self.gamma)
         else:
@@ -872,6 +871,13 @@ def main():
         default=2,
         required=False,
         help="batchsize for training",
+    )
+    p.add_argument(
+        "--max_epochs",
+        type=int,
+        default=20,
+        required=False,
+        help="max epochs for training",
     )
     p.add_argument(
         "--imgsize",
