@@ -830,7 +830,7 @@ def get_orig_cmd(max_width=80, full_python_path=False):
         if len(cmd) == 0 or len(current_line) + len(cmd[0]) + 1 > max_width - 1:
             lines.append(current_line)
             current_line = ""
-    return "\\\n".join(lines)
+    return " ".join(lines)
 
 
 def main():
