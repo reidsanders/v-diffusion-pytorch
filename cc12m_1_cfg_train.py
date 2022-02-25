@@ -829,7 +829,7 @@ def main():
         tpu_cores=8,
         num_nodes=1,
         precision="bf16",
-        callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
+        callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback, demo_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
         val_check_interval=0.5,
