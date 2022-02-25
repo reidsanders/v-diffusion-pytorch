@@ -23,7 +23,7 @@ from torchvision.transforms import functional as TF
 from tqdm import trange
 import wandb
 from CLIP import clip
-from .dataloaders import DanbooruCaptions, DrawtextCaptions, ConceptualCaptions, GoodbotCaptions, JsonTextCaptions
+from dataloaders import DanbooruCaptions, DrawtextCaptions, ConceptualCaptions, GoodbotCaptions, JsonTextCaptions
 
 # Define utility functions
 
