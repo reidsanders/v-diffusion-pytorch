@@ -839,8 +839,7 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
-    # wandb.config.update(vars(args))
+    # wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
     for k, v in vars(args).items():
         wandb.config[str(k)] = v
     wandb.config["command"] = get_orig_cmd()
