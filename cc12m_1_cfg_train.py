@@ -442,7 +442,7 @@ class DrawtextCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {self.stems[index]} " f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -471,7 +471,8 @@ class JsonTextCaptions(data.Dataset):
             try:
                 datapoint = self.data[index]
                 text = datapoint["text"]
-                image = Image.open(Path(self.root) / datapoint["filename"])
+                image_path = Path(self.root) / datapoint["filename"]
+                image = Image.open(image_path)
 
                 if self.transform is not None:
                     image = self.transform(image)
@@ -485,7 +486,7 @@ class JsonTextCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {image} " f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -514,7 +515,8 @@ class GoodbotCaptions(data.Dataset):
             try:
                 datapoint = self.data[index]
                 text = datapoint["text"]
-                image = Image.open(Path(self.root) / datapoint["filename"])
+                image_path = Path(self.root) / datapoint["filename"]
+                image = Image.open(image_path)
 
                 if self.transform is not None:
                     image = self.transform(image)
@@ -528,7 +530,7 @@ class GoodbotCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {image} " f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -556,7 +558,8 @@ class DanbooruCaptions(data.Dataset):
         try:
             try:
                 datapoint = self.data[index]
-                image = Image.open(Path(self.root) / datapoint["filename"])
+                image_path = Path(self.root) / datapoint["filename"]
+                image = Image.open(image_path)
                 tags = [example["name"] for example in datapoint["tags"]]
                 text = (
                     f"A drawing. Rating {datapoint['rating']}, score {datapoint['score']}, and tags {','.join(tags)}."
@@ -574,7 +577,7 @@ class DanbooruCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {image} " f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
@@ -620,7 +623,7 @@ class ConceptualCaptions(data.Dataset):
                 Image.UnidentifiedImageError,
             ) as err:
                 print(
-                    f"Bad image, skipping: {index} {self.stems[index]} " f"{type(err).__name__}: {err!s}",
+                    f"Bad image, skipping: {index} {image_path} " f"{type(err).__name__}: {err!s}",
                     file=sys.stderr,
                 )
                 return self[random.randrange(len(self))]
