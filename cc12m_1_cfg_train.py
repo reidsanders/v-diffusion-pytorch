@@ -619,8 +619,11 @@ class LightningDiffusion(pl.LightningModule):
         optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
         lr_scheduler_config = {
             # REQUIRED: The scheduler instance
-            "scheduler": optim.lr_scheduler.OneCycleLR(
-                optimizer, self.lr * 20, total_steps=self.total_steps
+            # "scheduler": optim.lr_scheduler.OneCycleLR(
+            #     optimizer, self.lr * 20, total_steps=self.total_steps
+            # ),
+            "scheduler": optim.lr_scheduler.CosineAnnealingWarmRestarts(
+                optimizer
             ),
             # The unit of the scheduler's step size, could also be 'step'.
             # 'epoch' updates the scheduler on epoch end whereas 'step'
@@ -631,7 +634,7 @@ class LightningDiffusion(pl.LightningModule):
             # rate after every epoch/step.
             "frequency": 10,
             # Metric to to monitor for schedulers like `ReduceLROnPlateau`
-            "monitor": "val/loss",
+            "monitor": "train/loss",
             # If set to `True`, will enforce that the value specified 'monitor'
             # is available when the scheduler is updated, thus stopping
             # training if not found. If set to `False`, it will only produce a warning
