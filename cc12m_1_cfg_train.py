@@ -931,7 +931,7 @@ def main():
     elif args.dataset_mode == "danbooru":
         fulldata_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
     elif args.dataset_mode == "goodbot":
-        fulldata_set = DanbooruCaptions(args.train_set, transform=tf, target_transform=ttf)
+        fulldata_set = GoodbotCaptions(args.train_set, transform=tf, target_transform=ttf)
 
     if not args.val_set:
         ## Split data
@@ -950,7 +950,7 @@ def main():
         elif args.dataset_mode == "danbooru":
             val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
         elif args.dataset_mode == "goodbot":
-            val_set = DanbooruCaptions(args.val_set, transform=tf, target_transform=ttf)
+            val_set = GoodbotCaptions(args.val_set, transform=tf, target_transform=ttf)
 
     val_dl = data.DataLoader(
         val_set,
