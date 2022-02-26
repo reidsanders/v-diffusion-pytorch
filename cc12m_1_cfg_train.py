@@ -657,13 +657,6 @@ def main():
         help="load checkpoint file path",
     )
     p.add_argument(
-        "--lightningcheckpoint",
-        type=Path,
-        default=None,
-        required=False,
-        help="load lightning mode checkpoint file path",
-    )
-    p.add_argument(
         "--batchsize",
         type=int,
         default=2,
