@@ -610,7 +610,7 @@ class DemoCallback(pl.Callback):
     def on_train_batch_end(self, trainer, module, outputs, batch, batch_idx, unused=0):
         if trainer.global_step == 0 or trainer.global_step % 1 != 0:
             return
-
+        print(f"Running Demo Sampling")
         lines = [f"({i // 4}, {i % 4}) {line}" for i, line in enumerate(self.prompts)]
         lines_text = "\n".join(lines)
         Path("demo_prompts_out.txt").write_text(lines_text)
@@ -618,12 +618,13 @@ class DemoCallback(pl.Callback):
         clip_embed = module.clip_model.encode_text(self.prompts_toks.to(module.device))
         with eval_mode(module):
             # fakes = sample(module, noise, 1000, 1, {"clip_embed": clip_embed}, guidance_scale=3.0)
-            fakes = cfg_sample(module, noise, 1000, 1, {"clip_embed": clip_embed}, guidance_scale=3.0)
+            fakes = cfg_sample(module, 1000, 1, batchsize=16)
 
         grid = utils.make_grid(fakes, 4, padding=0).cpu()
         image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
         filename = f"demo_{trainer.global_step:08}.png"
         image.save(filename)
+        print(f"Saved demo image to: {filename}")
         log_dict = {
             "demo_grid": wandb.Image(image),
             "prompts": wandb.Html(f"<pre>{lines_text}</pre>"),
