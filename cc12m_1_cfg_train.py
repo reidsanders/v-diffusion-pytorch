@@ -516,7 +516,7 @@ class LightningDiffusion(pl.LightningModule):
         elif self.scheduler == "cosineannealingwarmrestarts":
             lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=self.epochs)
         elif self.scheduler == "exponentiallr":
-            lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, gamma=self.gamma)
+            lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.gamma)
         else:
             lr_scheduler = self.scheduler
         lr_scheduler_config = {
