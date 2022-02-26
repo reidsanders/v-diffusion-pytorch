@@ -622,12 +622,8 @@ def get_orig_cmd(max_width=80, full_python_path=False):
     return " ".join(lines)
 
 
-def extract_and_rename_lightning_state_dict(checkpoint, lightningcheckpoint):
-    checkpoint_loaded = torch.load(checkpoint, map_location="cpu")
-    lightning_model = torch.load(lightningcheckpoint, map_location="cpu")
-    state_dict_modified = {
-        re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint_loaded.items()
-    }
+def rename_lightning_checkpoint_keys(checkpoint, lightning_state_dict):
+    state_dict_modified = {re.sub("net.(.*)", r"model.net.\1", key): value for (key, value) in checkpoint.items()}
     ## Hacky fix for unexpected keys
     for k in [
         "mapping_timestep_embed.weight",
@@ -643,7 +639,6 @@ def extract_and_rename_lightning_state_dict(checkpoint, lightningcheckpoint):
         "timestep_embed.weight",
     ]:
         _ = state_dict_modified.pop(k, None)
-    lightning_state_dict = lightning_model["state_dict"]
     lightning_state_dict.update(state_dict_modified)
     return lightning_state_dict
 
@@ -845,16 +840,21 @@ def main():
     wandb.config["command"] = get_orig_cmd()
 
     ### Load checkpoint. There are different naming schemes, so this handles different options
-    if args.checkpoint and args.lightningcheckpoint:
-        lightning_state_dict = extract_and_rename_lightning_state_dict(args.checkpoint, args.lightningcheckpoint)
-        model.load_state_dict(lightning_state_dict)
-        trainer.fit(model, train_dl, val_dl)
-    elif args.checkpoint and args.restore_train_state:
-        trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
-    elif args.checkpoint:
-        model.load_from_checkpoint(args.checkpoint)
-        trainer.fit(model, train_dl, val_dl)
-    else:
+    if args.checkpoint:
+        print(f"Loading checkpoint {args.checkpoint}")
+        if args.restore_train_state:
+            trainer.fit(model, train_dl, val_dl, ckpt_path=args.checkpoint)
+        else:
+            try:
+                ## Try lightning model format
+                model.load_from_checkpoint(args.checkpoint)
+            except KeyError:
+                print(f"Falling back to state_dict loading")
+                checkpoint_loaded = torch.load(args.checkpoint, map_location="cpu")
+                lightning_state_dict = rename_lightning_checkpoint_keys(checkpoint_loaded, model.state_dict())
+                model.load_state_dict(lightning_state_dict)
+            trainer.fit(model, train_dl, val_dl)
+    else: 
         trainer.fit(model, train_dl, val_dl)
 
 
