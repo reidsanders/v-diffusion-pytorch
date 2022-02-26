@@ -733,9 +733,6 @@ def main():
     args = p.parse_known_args()[0]
     print(f"Starting train on {args.train_set}")
 
-    ### See https://github.com/wandb/client/issues/1994
-    # os.environ['WANDB_CONSOLE'] = 'off'
-
     tf = transforms.Compose(
         [
             ToMode("RGB"),
@@ -820,6 +817,7 @@ def main():
 
     metrics_callback = MetricsCallback(demo_prompts)
     exc_callback = ExceptionCallback()
+    ## Load lightning argparse args
     pl.Trainer.add_argparse_args(p)
     p.set_defaults(
         tpu_cores=8,
@@ -834,7 +832,7 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    # wandb.init(config=vars(args), save_code=True, name="Diffusion Run tmp")
+    wandb.init(config=vars(args), save_code=True, name="Diffusion Run")
     for k, v in vars(args).items():
         wandb.config[str(k)] = v
     wandb.config["command"] = get_orig_cmd()
@@ -860,6 +858,8 @@ def main():
 
 if __name__ == "__main__":
     # Fix crashes on multiple tpu cores, but breaks stdout logging
-    wandb.require(experiment="service")
+    ### See https://github.com/wandb/client/issues/1994
+    os.environ['WANDB_CONSOLE'] = 'off'
+    # wandb.require(experiment="service")
     wandb.setup()
     main()
