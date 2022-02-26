@@ -6,6 +6,7 @@ from . import utils
 
 # DDPM/DDIM sampling
 
+
 @torch.no_grad()
 def sample(model, x, steps, eta, extra_args, callback=None):
     """Draws samples from a model given starting noise."""
@@ -139,12 +140,14 @@ def reverse_sample(model, x, steps, extra_args, callback=None):
 
 # PNDM sampling (see https://openreview.net/pdf?id=PlKWVd2yBkY)
 
+
 def make_eps_model_fn(model):
     def eps_model_fn(x, t, **extra_args):
         alphas, sigmas = utils.t_to_alpha_sigma(t)
         v = model(x, t, **extra_args)
         eps = x * sigmas[:, None, None, None] + v * alphas[:, None, None, None]
         return eps
+
     return eps_model_fn
 
 
@@ -152,6 +155,7 @@ def make_autocast_model_fn(model, enabled=True):
     def autocast_model_fn(*args, **kwargs):
         with torch.cuda.amp.autocast(enabled):
             return model(*args, **kwargs).float()
+
     return autocast_model_fn
 
 
@@ -197,7 +201,7 @@ def prk_sample(model, x, steps, extra_args, is_reverse=False, callback=None):
     for i in trange(len(steps) - 1, disable=None):
         x, _, pred = prk_step(model_fn, x, steps[i] * ts, steps[i + 1] * ts, extra_args)
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "pred": pred})
     return x
 
 
@@ -217,5 +221,5 @@ def plms_sample(model, x, steps, extra_args, is_reverse=False, callback=None):
             old_eps.pop(0)
         old_eps.append(eps)
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "pred": pred})
     return x

@@ -26,7 +26,7 @@ from CLIP import clip
 from diffusion import sampling
 from diffusion import utils as diffusionutils
 from dataloaders import DanbooruCaptions, DrawtextCaptions, ConceptualCaptions, GoodbotCaptions, JsonTextCaptions
-from models.cc12m_1 import CC12M1Model
+from diffusion.models.cc12m_1 import CC12M1Model
 
 # Define utility functions
 

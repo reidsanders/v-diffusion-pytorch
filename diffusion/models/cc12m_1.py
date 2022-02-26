@@ -138,7 +138,6 @@ class CC12M1Model(nn.Module):
                 scale_factor=2,
                 mode="nearest",
             )
-                
 
         self.net = nn.Sequential(  # 256x256
             conv_block(3 + 16, cs[0], cs[0]),
