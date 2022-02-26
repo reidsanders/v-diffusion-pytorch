@@ -23,6 +23,8 @@ from torchvision.transforms import functional as TF
 from tqdm import trange
 import wandb
 from CLIP import clip
+from diffusion import sampling
+from diffusion import utils as diffusionutils
 from dataloaders import DanbooruCaptions, DrawtextCaptions, ConceptualCaptions, GoodbotCaptions, JsonTextCaptions
 
 # Define utility functions
@@ -335,6 +337,73 @@ class DiffusionModel(nn.Module):
         self.state.clear()
         return out
 
+@torch.no_grad()
+def cfg_sample(model, steps, eta, method="ddim", batchsize=1):
+    """Draws samples from a model given starting noise."""
+
+    _, side_y, side_x = model.shape
+
+    zero_embed = torch.zeros([1, model.clip_model.visual.output_dim], device=model.device)
+    target_embeds, weights = [zero_embed], []
+
+    # normalize = transforms.Normalize(
+    #     mean=[0.48145466, 0.4578275, 0.40821073],
+    #     std=[0.26862954, 0.26130258, 0.27577711],
+    # )
+
+    # for prompt in args.prompts:
+    #     txt, weight = parse_prompt(prompt)
+    #     target_embeds.append(clip_model.encode_text(clip.tokenize(txt).to(device)).float())
+    #     weights.append(weight)
+
+    # for prompt in args.images:
+    #     path, weight = parse_prompt(prompt)
+    #     img = Image.open(diffusionutils.fetch(path)).convert("RGB")
+    #     clip_size = clip_model.visual.input_resolution
+    #     img = resize_and_center_crop(img, (clip_size, clip_size))
+    #     batch = TF.to_tensor(img)[None].to(device)
+    #     embed = F.normalize(clip_model.encode_image(normalize(batch)).float(), dim=-1)
+    #     target_embeds.append(embed)
+    #     weights.append(weight)
+    
+    # torch.manual_seed(args.seed)
+
+    def cfg_model_fn(x, t):
+        n = x.shape[0]
+        n_conds = len(target_embeds)
+        x_in = x.repeat([n_conds, 1, 1, 1])
+        t_in = t.repeat([n_conds])
+        clip_embed_in = torch.cat([*target_embeds]).repeat_interleave(n, 0)
+        vs = model(x_in, t_in, clip_embed_in).view([n_conds, n, *x.shape[1:]])
+        v = vs.mul(weights[:, None, None, None, None]).sum(0)
+        return v
+
+    def run(x, steps):
+        if method == "ddpm":
+            return sampling.sample(cfg_model_fn, x, steps, 1.0, {})
+        if method == "ddim":
+            return sampling.sample(cfg_model_fn, x, steps, eta, {})
+        if method == "prk":
+            return sampling.prk_sample(cfg_model_fn, x, steps, {})
+        if method == "plms":
+            return sampling.plms_sample(cfg_model_fn, x, steps, {})
+        assert False
+
+    def run_all(n, batchsize):
+        x = torch.randn([n, 3, side_y, side_x], device=model.device)
+        t = torch.linspace(1, 0, steps + 1, device=model.device)[:-1]
+        steps = diffusionutils.get_spliced_ddpm_cosine_schedule(t)
+        for i in trange(0, n, batchsize):
+            cur_batch_size = min(n - i, batchsize)
+            outs = run(x[i : i + cur_batch_size], steps)
+            # for j, out in enumerate(outs):
+            #     img = diffusionutils.to_pil_image(out)
+        return outs
+
+    weights = torch.tensor([1 - sum(weights), *weights], device=model.device)
+    outs = run_all(steps, batchsize)
+    return outs
+
 
 @torch.no_grad()
 def sample(model, x, steps, eta, extra_args, guidance_scale=1.0):
@@ -442,7 +511,7 @@ class LightningDiffusion(pl.LightningModule):
         optimizer = optim.AdamW(self.model.parameters(), lr=self.lr, eps=self.eps, weight_decay=self.weight_decay)
         if self.scheduler == "onecyclelr":
             lr_scheduler = optim.lr_scheduler.OneCycleLR(
-                optimizer, self.lr * 20, epochs=self.epochs, steps_per_epoch=self.steps_per_epoch
+                optimizer, self.lr * 25, epochs=self.epochs, steps_per_epoch=self.steps_per_epoch
             )
         elif self.scheduler == "cosineannealingwarmrestarts":
             lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 1, last_epoch=self.epochs)
@@ -534,6 +603,7 @@ class DemoCallback(pl.Callback):
         super().__init__()
         self.prompts = prompts[:8]
         self.prompts_toks = prompts_toks[:8]
+        # TODO use val text
 
     @rank_zero_only
     @torch.no_grad()
@@ -547,7 +617,8 @@ class DemoCallback(pl.Callback):
         noise = torch.randn([16, 3, 256, 256], device=module.device)
         clip_embed = module.clip_model.encode_text(self.prompts_toks.to(module.device))
         with eval_mode(module):
-            fakes = sample(module, noise, 1000, 1, {"clip_embed": clip_embed}, guidance_scale=3.0)
+            # fakes = sample(module, noise, 1000, 1, {"clip_embed": clip_embed}, guidance_scale=3.0)
+            fakes = cfg_sample(module, noise, 1000, 1, {"clip_embed": clip_embed}, guidance_scale=3.0)
 
         grid = utils.make_grid(fakes, 4, padding=0).cpu()
         image = TF.to_pil_image(grid.add(1).div(2).clamp(0, 1))
@@ -805,7 +876,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
-    # demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
+    demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     lr_monitor_callback = pl.callbacks.LearningRateMonitor(logging_interval="step")
 
     metrics_callback = MetricsCallback(demo_prompts)
@@ -816,7 +887,7 @@ def main():
         tpu_cores=8,
         num_nodes=1,
         precision="bf16",
-        callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
+        callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback, demo_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
         val_check_interval=0.5,

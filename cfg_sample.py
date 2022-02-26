@@ -3,7 +3,6 @@
 """Classifier-free guidance sampling from a diffusion model."""
 
 import argparse
-from functools import partial
 from pathlib import Path
 
 from PIL import Image
@@ -14,10 +13,9 @@ from torchvision import transforms
 from torchvision.transforms import functional as TF
 from tqdm import trange
 import re
-from copy import deepcopy
 
 from CLIP import clip
-from diffusion import get_model, get_models, sampling, utils
+from diffusion import get_model, sampling, utils
 
 MODULE_DIR = Path(__file__).resolve().parent
 
