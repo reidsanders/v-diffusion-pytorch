@@ -877,7 +877,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
-    demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
+    # demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     lr_monitor_callback = pl.callbacks.LearningRateMonitor(logging_interval="step")
 
     metrics_callback = MetricsCallback(demo_prompts)
@@ -888,7 +888,7 @@ def main():
         tpu_cores=8,
         num_nodes=1,
         precision="bf16",
-        callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback, demo_callback],
+        callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
         val_check_interval=0.5,
