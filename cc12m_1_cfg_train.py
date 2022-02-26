@@ -337,6 +337,7 @@ class DiffusionModel(nn.Module):
         self.state.clear()
         return out
 
+
 @torch.no_grad()
 def cfg_sample(model, steps, eta, method="ddim", batchsize=1):
     """Draws samples from a model given starting noise."""
@@ -365,7 +366,7 @@ def cfg_sample(model, steps, eta, method="ddim", batchsize=1):
     #     embed = F.normalize(clip_model.encode_image(normalize(batch)).float(), dim=-1)
     #     target_embeds.append(embed)
     #     weights.append(weight)
-    
+
     # torch.manual_seed(args.seed)
 
     def cfg_model_fn(x, t):
@@ -487,7 +488,7 @@ class ToMode:
 
 class LightningDiffusion(pl.LightningModule):
     def __init__(
-        self, epochs=20, steps_per_epoch=10000, lr=3e-5, eps=1e-5, gamma=0.95, weight_decay=0.01, scheduler=None
+        self, epochs=-1, steps_per_epoch=10000, lr=3e-5, eps=1e-5, gamma=0.95, weight_decay=0.01, scheduler=None
     ):
         super().__init__()
         self.model = DiffusionModel()
@@ -738,7 +739,7 @@ def main():
     p.add_argument(
         "--scheduler_epochs",
         type=int,
-        default=20,
+        default=-1,
         required=False,
         help="epochs to pass to lr scheduler",
     )
@@ -891,6 +892,7 @@ def main():
         callbacks=[ckpt_callback, exc_callback, metrics_callback, lr_monitor_callback],
         logger=wandb_logger,
         log_every_n_steps=100,
+        track_grad_norm=2,
         val_check_interval=0.5,
         accumulate_grad_batches={1: 1, 3: 2, 6: 4, 8: 8, 16: 32, 32: 64, 64: 128, 100: 256},
         max_epochs=10,
@@ -917,7 +919,7 @@ def main():
                 lightning_state_dict = rename_lightning_checkpoint_keys(checkpoint_loaded, model.state_dict())
                 model.load_state_dict(lightning_state_dict)
             trainer.fit(model, train_dl, val_dl)
-    else: 
+    else:
         trainer.fit(model, train_dl, val_dl)
 
 
