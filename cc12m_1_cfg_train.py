@@ -532,7 +532,7 @@ class LightningDiffusion(pl.LightningModule):
             # rate after every epoch/step.
             "frequency": 10,
             # Metric to to monitor for schedulers like `ReduceLROnPlateau`
-            "monitor": "train/loss",
+            "monitor": "train_loss",
             # If set to `True`, will enforce that the value specified 'monitor'
             # is available when the scheduler is updated, thus stopping
             # training if not found. If set to `False`, it will only produce a warning
@@ -574,7 +574,7 @@ class LightningDiffusion(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self.eval_batch(batch)
-        log_dict = {"train/loss": loss.detach()}
+        log_dict = {"train_loss": loss.detach()}
         # task_f1 = pl.metrics.functional.f1(task_preds, task_labels, num_classes = self.hparams.num_classes)
         self.log_dict(log_dict, prog_bar=True, on_step=True)
         return loss
@@ -582,7 +582,7 @@ class LightningDiffusion(pl.LightningModule):
     @torch.no_grad()
     def validation_step(self, batch, batch_idx):
         loss = self.eval_batch(batch)
-        log_dict = {"val/loss": loss.detach()}
+        log_dict = {"val_loss": loss.detach()}
         self.log_dict(log_dict, prog_bar=True, on_step=True)
         return loss
 
@@ -776,7 +776,7 @@ def main():
     p.add_argument(
         "--gamma",
         type=float,
-        default=0.95,
+        default=0.99,
         required=False,
         help="exponential decay gamma for lr",
     )
@@ -804,7 +804,6 @@ def main():
             ToMode("RGB"),
             transforms.Resize(
                 args.imgsize,
-                # interpolation=transforms.InterpolationMode.LANCZOS
                 interpolation=transforms.InterpolationMode.NEAREST,
             ),
             transforms.CenterCrop(args.imgsize),
@@ -875,9 +874,15 @@ def main():
         gamma=args.gamma,
         scheduler=args.scheduler,
     )
-    wandb_logger = pl.loggers.WandbLogger(project=args.project_name)
+    wandb_logger = pl.loggers.WandbLogger(project=args.project_name, save_dir="checkpoints/")
     wandb_logger.watch(model.model)
-    ckpt_callback = pl.callbacks.ModelCheckpoint(every_n_train_steps=2500, save_top_k=2, monitor="val/loss")
+    ckpt_callback = pl.callbacks.ModelCheckpoint(
+        every_n_train_steps=2500,
+        save_top_k=2,
+        monitor="val_loss",
+        auto_insert_metric_name=True,
+        filename="{epoch}-{step}-{val_loss:.4f}-{train_loss:.4f}",
+    )
     # demo_callback = DemoCallback(demo_prompts, tok_wrap(demo_prompts))
     lr_monitor_callback = pl.callbacks.LearningRateMonitor(logging_interval="step")
 
@@ -894,7 +899,7 @@ def main():
         log_every_n_steps=100,
         track_grad_norm=2,
         val_check_interval=0.5,
-        accumulate_grad_batches={1: 1, 3: 2, 6: 4, 8: 8, 16: 32, 32: 64, 64: 128, 100: 256},
+        accumulate_grad_batches=1,
         max_epochs=10,
     )
     args = p.parse_args()
