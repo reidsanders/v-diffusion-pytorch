@@ -108,7 +108,7 @@ def expand_to_planes(input, shape):
 
 
 class CC12M1Model(nn.Module):
-    def __init__(self):
+    def __init__(self, upsample_mode="bilinear"):
         super().__init__()
         self.shape = (3, 256, 256)
         self.clip_model = "ViT-B/16"
@@ -131,7 +131,14 @@ class CC12M1Model(nn.Module):
 
         self.timestep_embed = FourierFeatures(1, 16)
         self.down = nn.AvgPool2d(2)
-        self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False)
+        if upsample_mode == "bilinear":
+            self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False)
+        else:
+            self.up = nn.Upsample(
+                scale_factor=2,
+                mode="nearest",
+            )
+                
 
         self.net = nn.Sequential(  # 256x256
             conv_block(3 + 16, cs[0], cs[0]),
