@@ -923,7 +923,7 @@ def main():
 if __name__ == "__main__":
     # Fix crashes on multiple tpu cores, but breaks stdout logging
     ### See https://github.com/wandb/client/issues/1994
-    os.environ['WANDB_CONSOLE'] = 'off'
-    # wandb.require(experiment="service")
+    # os.environ['WANDB_CONSOLE'] = 'off'
+    wandb.require(experiment="service")
     wandb.setup()
     main()
