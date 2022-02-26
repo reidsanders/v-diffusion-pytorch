@@ -6,6 +6,7 @@ from . import utils
 
 # DDPM/DDIM sampling
 
+
 @torch.no_grad()
 def sample(model, x, steps, eta, extra_args, callback=None):
     """Draws samples from a model given starting noise."""
@@ -27,16 +28,17 @@ def sample(model, x, steps, eta, extra_args, callback=None):
 
         # Call the callback
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'v': v, 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "v": v, "pred": pred})
 
         # If we are not on the last timestep, compute the noisy image for the
         # next timestep.
         if i < len(steps) - 1:
             # If eta > 0, adjust the scaling factor for the predicted noise
             # downward according to the amount of additional noise to add
-            ddim_sigma = eta * (sigmas[i + 1]**2 / sigmas[i]**2).sqrt() * \
-                (1 - alphas[i]**2 / alphas[i + 1]**2).sqrt()
-            adjusted_sigma = (sigmas[i + 1]**2 - ddim_sigma**2).sqrt()
+            ddim_sigma = (
+                eta * (sigmas[i + 1] ** 2 / sigmas[i] ** 2).sqrt() * (1 - alphas[i] ** 2 / alphas[i + 1] ** 2).sqrt()
+            )
+            adjusted_sigma = (sigmas[i + 1] ** 2 - ddim_sigma**2).sqrt()
 
             # Recombine the predicted noise and predicted denoised image in the
             # correct proportions for the next step
@@ -71,7 +73,7 @@ def cond_sample(model, x, steps, eta, extra_args, cond_fn, callback=None):
 
             # Call the callback
             if callback is not None:
-                callback({'x': x, 'i': i, 't': steps[i], 'v': v.detach(), 'pred': pred.detach()})
+                callback({"x": x, "i": i, "t": steps[i], "v": v.detach(), "pred": pred.detach()})
 
             if steps[i] < 1:
                 cond_grad = cond_fn(x, ts * steps[i], pred, **extra_args).detach()
@@ -88,9 +90,10 @@ def cond_sample(model, x, steps, eta, extra_args, cond_fn, callback=None):
         if i < len(steps) - 1:
             # If eta > 0, adjust the scaling factor for the predicted noise
             # downward according to the amount of additional noise to add
-            ddim_sigma = eta * (sigmas[i + 1]**2 / sigmas[i]**2).sqrt() * \
-                (1 - alphas[i]**2 / alphas[i + 1]**2).sqrt()
-            adjusted_sigma = (sigmas[i + 1]**2 - ddim_sigma**2).sqrt()
+            ddim_sigma = (
+                eta * (sigmas[i + 1] ** 2 / sigmas[i] ** 2).sqrt() * (1 - alphas[i] ** 2 / alphas[i + 1] ** 2).sqrt()
+            )
+            adjusted_sigma = (sigmas[i + 1] ** 2 - ddim_sigma**2).sqrt()
 
             # Recombine the predicted noise and predicted denoised image in the
             # correct proportions for the next step
@@ -126,7 +129,7 @@ def reverse_sample(model, x, steps, extra_args, callback=None):
 
         # Call the callback
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'v': v, 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "v": v, "pred": pred})
 
         # Recombine the predicted noise and predicted denoised image in the
         # correct proportions for the next step
@@ -137,12 +140,14 @@ def reverse_sample(model, x, steps, extra_args, callback=None):
 
 # PNDM sampling (see https://openreview.net/pdf?id=PlKWVd2yBkY)
 
+
 def make_eps_model_fn(model):
     def eps_model_fn(x, t, **extra_args):
         alphas, sigmas = utils.t_to_alpha_sigma(t)
         v = model(x, t, **extra_args)
         eps = x * sigmas[:, None, None, None] + v * alphas[:, None, None, None]
         return eps
+
     return eps_model_fn
 
 
@@ -150,6 +155,7 @@ def make_autocast_model_fn(model, enabled=True):
     def autocast_model_fn(*args, **kwargs):
         with torch.cuda.amp.autocast(enabled):
             return model(*args, **kwargs).float()
+
     return autocast_model_fn
 
 
@@ -196,7 +202,7 @@ def prk_sample(model, x, steps, extra_args, is_reverse=False, callback=None):
     for i in trange(len(steps) - 1, disable=None):
         x, _, pred = prk_step(model_fn, x, steps[i] * ts, steps[i + 1] * ts, extra_args)
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "pred": pred})
     return x
 
 
@@ -217,7 +223,7 @@ def plms_sample(model, x, steps, extra_args, is_reverse=False, callback=None):
             old_eps.pop(0)
         old_eps.append(eps)
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "pred": pred})
     return x
 
 

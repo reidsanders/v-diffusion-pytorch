@@ -3,5 +3,11 @@ regex
 requests
 Pillow
 torch
+git+https://github.com/PytorchLightning/pytorch-lightning.git
 torchvision
+torchaudio
+torchtext
+torchmetrics
 tqdm
+wandb
+libtpu-nightly

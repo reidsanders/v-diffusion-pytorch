@@ -8,14 +8,14 @@ from torchvision.transforms import functional as TF
 
 def fetch(url_or_path):
     """Fetches a file from an HTTP or HTTPS url, or opens the local file."""
-    if str(url_or_path).startswith('http://') or str(url_or_path).startswith('https://'):
+    if str(url_or_path).startswith("http://") or str(url_or_path).startswith("https://"):
         r = requests.get(url_or_path)
         r.raise_for_status()
         fd = io.BytesIO()
         fd.write(r.content)
         fd.seek(0)
         return fd
-    return open(url_or_path, 'rb')
+    return open(url_or_path, "rb")
 
 
 def from_pil_image(x):

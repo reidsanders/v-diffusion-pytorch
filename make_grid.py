@@ -11,12 +11,9 @@ from PIL import Image
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('images', type=str, nargs='+', metavar='image',
-                   help='the input images')
-    p.add_argument('--output', '-o', type=str, default='out.png',
-                   help='the output image')
-    p.add_argument('--nrow', type=int,
-                   help='the number of images per row')
+    p.add_argument("images", type=str, nargs="+", metavar="image", help="the input images")
+    p.add_argument("--output", "-o", type=str, default="out.png", help="the output image")
+    p.add_argument("--nrow", type=int, help="the number of images per row")
     args = p.parse_args()
 
     images = [Image.open(image) for image in args.images]
@@ -24,10 +21,10 @@ def main():
     size = images[0].size
     for image, name in zip(images, args.images):
         if image.mode != mode:
-            print(f'Error: Image {name} had mode {image.mode}, expected {mode}', file=sys.stderr)
+            print(f"Error: Image {name} had mode {image.mode}, expected {mode}", file=sys.stderr)
             sys.exit(1)
         if image.size != size:
-            print(f'Error: Image {name} had size {image.size}, expected {size}', file=sys.stderr)
+            print(f"Error: Image {name} had size {image.size}, expected {size}", file=sys.stderr)
             sys.exit(1)
 
     n = len(images)
@@ -42,5 +39,5 @@ def main():
     output.save(args.output)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

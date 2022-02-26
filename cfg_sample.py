@@ -3,7 +3,6 @@
 """Classifier-free guidance sampling from a diffusion model."""
 
 import argparse
-from functools import partial
 from pathlib import Path
 
 from PIL import Image
@@ -13,20 +12,21 @@ from torch.nn import functional as F
 from torchvision import transforms
 from torchvision.transforms import functional as TF
 from tqdm import trange
+import re
 
 from CLIP import clip
-from diffusion import get_model, get_models, sampling, utils
+from diffusion import get_model, sampling, utils
 
 MODULE_DIR = Path(__file__).resolve().parent
 
 
-def parse_prompt(prompt, default_weight=3.):
-    if prompt.startswith('http://') or prompt.startswith('https://'):
-        vals = prompt.rsplit(':', 2)
-        vals = [vals[0] + ':' + vals[1], *vals[2:]]
+def parse_prompt(prompt, default_weight=3.0):
+    if prompt.startswith("http://") or prompt.startswith("https://"):
+        vals = prompt.rsplit(":", 2)
+        vals = [vals[0] + ":" + vals[1], *vals[2:]]
     else:
-        vals = prompt.rsplit(':', 1)
-    vals = vals + ['', default_weight][len(vals):]
+        vals = prompt.rsplit(":", 1)
+    vals = vals + ["", default_weight][len(vals) :]
     return vals[0], float(vals[1])
 
 
@@ -37,44 +37,37 @@ def resize_and_center_crop(image, size):
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('prompts', type=str, default=[], nargs='*',
-                   help='the text prompts to use')
-    p.add_argument('--images', type=str, default=[], nargs='*', metavar='IMAGE',
-                   help='the image prompts')
-    p.add_argument('--batch-size', '-bs', type=int, default=1,
-                   help='the number of images per batch')
-    p.add_argument('--checkpoint', type=str,
-                   help='the checkpoint to use')
-    p.add_argument('--device', type=str,
-                   help='the device to use')
-    p.add_argument('--eta', type=float, default=0.,
-                   help='the amount of noise to add during sampling (0-1)')
-    p.add_argument('--init', type=str,
-                   help='the init image')
-    p.add_argument('--method', type=str, default='plms',
-                   choices=['ddpm', 'ddim', 'prk', 'plms', 'pie', 'plms2'],
-                   help='the sampling method to use')
-    p.add_argument('--model', type=str, default='cc12m_1_cfg', choices=['cc12m_1_cfg'],
-                   help='the model to use')
-    p.add_argument('-n', type=int, default=1,
-                   help='the number of images to sample')
-    p.add_argument('--seed', type=int, default=0,
-                   help='the random seed')
-    p.add_argument('--size', type=int, nargs=2,
-                   help='the output image size')
-    p.add_argument('--starting-timestep', '-st', type=float, default=0.9,
-                   help='the timestep to start at (used with init images)')
-    p.add_argument('--steps', type=int, default=50,
-                   help='the number of timesteps')
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
+    p.add_argument("--images", type=str, default=[], nargs="*", metavar="IMAGE", help="the image prompts")
+    p.add_argument("--batch-size", "-bs", type=int, default=1, help="the number of images per batch")
+    p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
+    p.add_argument("--device", type=str, help="the device to use")
+    p.add_argument("--eta", type=float, default=0.0, help="the amount of noise to add during sampling (0-1)")
+    p.add_argument("--init", type=str, help="the init image")
+    p.add_argument(
+        "--method",
+        type=str,
+        default="plms",
+        choices=["ddpm", "ddim", "prk", "plms", "pie", "plms2"],
+        help="the sampling method to use",
+    )
+    p.add_argument("--model", type=str, default="cc12m_1_cfg", choices=["cc12m_1_cfg"], help="the model to use")
+    p.add_argument("-n", type=int, default=1, help="the number of images to sample")
+    p.add_argument("--seed", type=int, default=0, help="the random seed")
+    p.add_argument("--size", type=int, nargs=2, help="the output image size")
+    p.add_argument(
+        "--starting-timestep", "-st", type=float, default=0.9, help="the timestep to start at (used with init images)"
+    )
+    p.add_argument("--steps", type=int, default=50, help="the number of timesteps")
+    p.add_argument("--outdir", type=str, default="./generated-images/", help="Directory to save output files to")
     args = p.parse_args()
 
     if args.device:
         device = torch.device(args.device)
     else:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print('Using device:', device)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
 
     model = get_model(args.model)()
     _, side_y, side_x = model.shape
@@ -82,19 +75,41 @@ def main():
         side_x, side_y = args.size
     checkpoint = args.checkpoint
     if not checkpoint:
-        checkpoint = MODULE_DIR / f'checkpoints/{args.model}.pth'
-    model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
-    if device.type == 'cuda':
+        checkpoint = MODULE_DIR / f"checkpoints/{args.model}.pth"
+    try:
+        model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
+    except RuntimeError:
+        print("Runtime error loading state dict, Trying lightning naming schema")
+        checkpoint_loaded = torch.load(checkpoint, map_location="cpu")
+        checkpoint_modified = {
+            re.sub("model.(.*)", r"\1", key): value for (key, value) in checkpoint_loaded["state_dict"].items()
+        }
+
+        checkpoint_example = MODULE_DIR / f"checkpoints/{args.model}.pth"
+        checkpoint_example_keys = torch.load(checkpoint_example, map_location="cpu").keys()
+        checkpoint_modified = {
+            key: value for (key, value) in checkpoint_modified.items() if key in checkpoint_example_keys
+        }
+        try:
+            model.load_state_dict(checkpoint_modified)
+        except RuntimeError:
+            import ipdb
+
+            ipdb.set_trace()
+
+    if device.type == "cuda":
         model = model.half()
     model = model.to(device).eval().requires_grad_(False)
-    clip_model_name = model.clip_model if hasattr(model, 'clip_model') else 'ViT-B/16'
+    clip_model_name = model.clip_model if hasattr(model, "clip_model") else "ViT-B/16"
     clip_model = clip.load(clip_model_name, jit=False, device=device)[0]
     clip_model.eval().requires_grad_(False)
-    normalize = transforms.Normalize(mean=[0.48145466, 0.4578275, 0.40821073],
-                                     std=[0.26862954, 0.26130258, 0.27577711])
+    normalize = transforms.Normalize(
+        mean=[0.48145466, 0.4578275, 0.40821073],
+        std=[0.26862954, 0.26130258, 0.27577711],
+    )
 
     if args.init:
-        init = Image.open(utils.fetch(args.init)).convert('RGB')
+        init = Image.open(utils.fetch(args.init)).convert("RGB")
         init = resize_and_center_crop(init, (side_x, side_y))
         init = utils.from_pil_image(init).to(device)[None].repeat([args.n, 1, 1, 1])
 
@@ -108,7 +123,7 @@ def main():
 
     for prompt in args.images:
         path, weight = parse_prompt(prompt)
-        img = Image.open(utils.fetch(path)).convert('RGB')
+        img = Image.open(utils.fetch(path)).convert("RGB")
         clip_size = clip_model.visual.input_resolution
         img = resize_and_center_crop(img, (clip_size, clip_size))
         batch = TF.to_tensor(img)[None].to(device)
@@ -131,17 +146,17 @@ def main():
         return v
 
     def run(x, steps):
-        if args.method == 'ddpm':
-            return sampling.sample(cfg_model_fn, x, steps, 1., {})
-        if args.method == 'ddim':
+        if args.method == "ddpm":
+            return sampling.sample(cfg_model_fn, x, steps, 1.0, {})
+        if args.method == "ddim":
             return sampling.sample(cfg_model_fn, x, steps, args.eta, {})
-        if args.method == 'prk':
+        if args.method == "prk":
             return sampling.prk_sample(cfg_model_fn, x, steps, {})
-        if args.method == 'plms':
+        if args.method == "plms":
             return sampling.plms_sample(cfg_model_fn, x, steps, {})
-        if args.method == 'pie':
+        if args.method == "pie":
             return sampling.pie_sample(cfg_model_fn, x, steps, {})
-        if args.method == 'plms2':
+        if args.method == "plms2":
             return sampling.plms2_sample(cfg_model_fn, x, steps, {})
         assert False
 
@@ -155,15 +170,17 @@ def main():
             x = init * alpha + x * sigma
         for i in trange(0, n, batch_size):
             cur_batch_size = min(n - i, batch_size)
-            outs = run(x[i:i+cur_batch_size], steps)
+            outs = run(x[i : i + cur_batch_size], steps)
             for j, out in enumerate(outs):
-                utils.to_pil_image(out).save(f'out_{i + j:05}.png')
+                utils.to_pil_image(out).save(Path(args.outdir, f"out_{i + j:05}.png"))
 
     try:
+        if not Path.is_dir(Path(args.outdir)):
+            Path.mkdir(Path(args.outdir))
         run_all(args.n, args.batch_size)
     except KeyboardInterrupt:
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
