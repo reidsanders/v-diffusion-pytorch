@@ -588,7 +588,7 @@ def main():
     wandb.init(config=vars(args), save_code=True, name="Diffusion Run")
     for k, v in vars(args).items():
         wandb.config[str(k)] = v
-    wandb.config["command"] = get_orig_cmd()
+    wandb.config["command"] = get_command_as_called()
 
     ### Load checkpoint. There are different naming schemes, so this handles different options
     if args.checkpoint:
