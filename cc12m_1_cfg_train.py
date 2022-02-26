@@ -860,6 +860,6 @@ def main():
 
 if __name__ == "__main__":
     # Fix crashes on multiple tpu cores, but breaks stdout logging
-    wandb.require(experiment="service")  
+    wandb.require(experiment="service")
     wandb.setup()
     main()

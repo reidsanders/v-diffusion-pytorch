@@ -2,7 +2,7 @@ venv*
 __pycache__
 .ipynb_checkpoints
 *.pth
-out*
+out/*
 *.egg-info
 *.ini
-data
+datasets
