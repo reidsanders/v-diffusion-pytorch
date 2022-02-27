@@ -257,7 +257,7 @@ def pie_sample(model, x, steps, extra_args, is_reverse=False, callback=None):
     for i in trange(len(steps) - 1, disable=None):
         x, _, pred = pie_step(model_fn, x, steps[i] * ts, steps[i + 1] * ts, extra_args)
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "pred": pred})
     return x
 
 
@@ -278,5 +278,5 @@ def plms2_sample(model, x, steps, extra_args, is_reverse=False, callback=None):
             old_eps.pop(0)
         old_eps.append(eps)
         if callback is not None:
-            callback({'x': x, 'i': i, 't': steps[i], 'pred': pred})
+            callback({"x": x, "i": i, "t": steps[i], "pred": pred})
     return x

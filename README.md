@@ -134,3 +134,97 @@ usage: clip_sample.py [-h] [--images [IMAGE ...]] [--batch-size BATCH_SIZE]
 `--size`: the output image size (default auto)
 
 `--steps`: specify the number of diffusion timesteps (default is 1000, can lower for faster but lower quality sampling)
+
+## Training (on TPU)
+
+The training code is currently focused on training on TPUs (thanks Tensorflow Research Cloud!).
+
+Currently it is for training cc12m only. 
+
+You can follow tpu creation and installation as in https://github.com/reidsanders/cloud-setup-scripts. conda is recommended, but you can use whatever you prefer.
+
+If you are not running those scripts you will still want to set the following environment variables:
+
+```sh
+export XRT_TPU_CONFIG="localservice;0;localhost:51011"
+export XLA_USE_BF16=1
+```
+
+And install the appropriate torch_xla for your torch:
+```sh
+pip3 install torch_xla[tpuvm] -f https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-1.10-cp38-cp38-linux_x86_64.whl
+```
+
+Then you can start a training run:
+
+```sh
+python3 cc12m_1_cfg_train.py --train_set ~/datasets/goodbot/ --demo_prompts demo-prompts.txt --batchsize 3 --dataset_mode text --project_name goodbot-diffusion --max_epochs 100 --checkpoint checkpoints/cc12m_1_cfg.pth --lr 1e-5 --val_check_interval .5 --scheduler exponentiallr --gamma .99 --accumulate_grad_batches 8
+```
+
+You'll need to paste your wandb key the first time.
+
+### Config
+
+```sh
+$ python3 cc12m_1_cfg_train.py -h
+2022-02-27 04:32:51.146314: E tensorflow/core/framework/op_kernel.cc:1676] OpKernel ('op: "TPURoundRobin" device_type: "CPU"') for unknown op: TPURoundRobin
+2022-02-27 04:32:51.146380: E tensorflow/core/framework/op_kernel.cc:1676] OpKernel ('op: "TpuHandleToProtoKey" device_type: "CPU"') for unknown op: TpuHandleToProtoKey
+usage: cc12m_1_cfg_train.py [-h] --train_set TRAIN_SET [--val_set VAL_SET] [--test_set TEST_SET] --demo_prompts DEMO_PROMPTS [--checkpoint CHECKPOINT] [--batchsize BATCHSIZE]
+                            [--scheduler_epochs SCHEDULER_EPOCHS] [--imgsize IMGSIZE] [--dataset_mode [{conceptual,drawtext,text,danbooru,goodbot}]] [--project_name PROJECT_NAME] [--lr LR]
+                            [--gamma GAMMA] [--scheduler [{cosineannealingwarmrestarts,exponentiallr,onecyclelr}]] [--restore_train_state]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --train_set TRAIN_SET
+                        the training set location
+  --val_set VAL_SET     the val set location
+  --test_set TEST_SET   the test set location
+  --demo_prompts DEMO_PROMPTS
+                        the demo prompts
+  --checkpoint CHECKPOINT
+                        load checkpoint file path
+  --batchsize BATCHSIZE
+                        batchsize for training
+  --scheduler_epochs SCHEDULER_EPOCHS
+                        epochs to pass to lr scheduler
+  --imgsize IMGSIZE     Image size in pixels. Assumes square image
+  --dataset_mode [{conceptual,drawtext,text,danbooru,goodbot}]
+                        choose dataset loader mode (default: drawtext)
+  --project_name PROJECT_NAME
+                        project name for logging
+  --lr LR               starting lr
+  --gamma GAMMA         exponential decay gamma for lr
+  --scheduler [{cosineannealingwarmrestarts,exponentiallr,onecyclelr}]
+                        choose dataset loader mode (default: None)
+  --restore_train_state
+                        restore lightning training state
+```
+You can ignore the `TPURoundRobin` and `TpuHandleToProtoKey` warnings. 
+
+If you do not pass a val_set it will split the train_set into a train and val set for you. 
+
+In addition to the explicit args you can pass all the pytorch lightning [Trainer parameters](https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#methods). For example `accumulate_grad_batches` or `fast_dev_run`
+
+### Dataloaders
+
+This includes a few dataloaders for various experiments. They are not substantially different, generally just loading labels from json, but may be useful.
+
+### Caveats
+
+- This is fairly hacky and doubtless has bugs. Currently trying to load a checkpoint while using CosineAnnealingWarmRestarts crashes since the 'initial_lr' is not set.
+
+- Note that wandb does not play well with multiple cores, hence the use of wandb service experiment. It is still rather broken, and cannot log output or commands, so this includes a basic command logger. `wandb.init()` and `wandb.config.update()` do not work. If you want to add something to the config you need to set it manually with
+
+```python
+wandb.config.yourvalue = 2345
+```
+
+- Lightning tuner and profiler does not work.
+
+You can also download some pretrained models for some experiments here. See also [dataset creation scripts]https://github.com/reidsanders/dataset-creation-scripts for text and emoji dataset generation, and [danbooru utility]https://github.com/reidsanders/danbooru-utility for face recognition and filtering on gwern's danbooru dataset.
+
+This is formatted with black.
+
+### Acknowledgements
+
+Thanks to @kcrawson for the original code. Also thanks to Tensorflow Research Cloud for the tpu credits.
