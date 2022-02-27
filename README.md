@@ -141,7 +141,7 @@ The training code is currently focused on training on TPUs (thanks Tensorflow Re
 
 Currently it is for training cc12m only. 
 
-You can follow tpu creation and installation as in https://github.com/reidsanders/cloud-setup-scripts. conda is recommended, but you can use whatever you prefer.
+You can follow tpu creation and installation as in [cloud setup scripts](https://github.com/reidsanders/cloud-setup-scripts). conda is recommended, but you can use whatever you prefer.
 
 If you are not running those scripts you will still want to set the following environment variables:
 
@@ -221,7 +221,7 @@ wandb.config.yourvalue = 2345
 
 - Lightning tuner and profiler does not work.
 
-You can also download some pretrained models for some experiments here. See also [dataset creation scripts]https://github.com/reidsanders/dataset-creation-scripts for text and emoji dataset generation, and [danbooru utility]https://github.com/reidsanders/danbooru-utility for face recognition and filtering on gwern's danbooru dataset.
+You can also download some pretrained models for some experiments here. See also [dataset creation scripts](https://github.com/reidsanders/dataset-creation-scripts) for text and emoji dataset generation, and [danbooru utility](https://github.com/reidsanders/danbooru-utility) for face recognition and filtering on gwern's danbooru dataset.
 
 This is formatted with black.
 
