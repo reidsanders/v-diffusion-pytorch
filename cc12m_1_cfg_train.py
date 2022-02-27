@@ -230,7 +230,7 @@ class LightningDiffusion(pl.LightningModule):
         elif self.scheduler == "exponentiallr":
             lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.gamma)
         else:
-            lr_scheduler = self.scheduler
+            lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=1)
         lr_scheduler_config = {
             # REQUIRED: The scheduler instance
             "scheduler": lr_scheduler,
