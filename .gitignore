@@ -6,3 +6,4 @@ out/*
 *.egg-info
 *.ini
 datasets
+checkpoints/*
