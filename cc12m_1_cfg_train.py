@@ -73,6 +73,7 @@ def ema_update(model, averaged_model, decay):
 def get_alphas_sigmas(t):
     return torch.cos(t * math.pi / 2), torch.sin(t * math.pi / 2)
 
+
 @torch.no_grad()
 def cfg_sample(model, steps, eta, method="ddim", batchsize=1):
     """Draws samples from a model given starting noise."""

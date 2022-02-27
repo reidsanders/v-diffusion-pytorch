@@ -64,58 +64,45 @@ def resize_and_center_crop(image, size):
     return TF.center_crop(image, size[::-1])
 
 
+def make_cond_model_fn(model, cond_fn):
+    def cond_model_fn(x, t, **extra_args):
+        with torch.enable_grad():
+            x = x.detach().requires_grad_()
+            v = model(x, t, **extra_args)
+            alphas, sigmas = utils.t_to_alpha_sigma(t)
+            pred = x * alphas[:, None, None, None] - v * sigmas[:, None, None, None]
+            cond_grad = cond_fn(x, t, pred, **extra_args).detach()
+            v = v.detach() - cond_grad * (sigmas[:, None, None, None] / alphas[:, None, None, None])
+        return v
+
+    return cond_model_fn
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
-    p.add_argument(
-        "--images",
-        type=str,
-        default=[],
-        nargs="*",
-        metavar="IMAGE",
-        help="the image prompts",
-    )
-    p.add_argument(
-        "--batch-size",
-        "-bs",
-        type=int,
-        default=1,
-        help="the number of images per batch",
-    )
+    p.add_argument("--images", type=str, default=[], nargs="*", metavar="IMAGE", help="the image prompts")
+    p.add_argument("--batch-size", "-bs", type=int, default=1, help="the number of images per batch")
     p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
-    p.add_argument(
-        "--clip-guidance-scale",
-        "-cs",
-        type=float,
-        default=500.0,
-        help="the CLIP guidance scale",
-    )
+    p.add_argument("--clip-guidance-scale", "-cs", type=float, default=500.0, help="the CLIP guidance scale")
     p.add_argument("--cutn", type=int, default=16, help="the number of random crops to use")
     p.add_argument("--cut-pow", type=float, default=1.0, help="the random crop size power")
     p.add_argument("--device", type=str, help="the device to use")
-    p.add_argument(
-        "--eta",
-        type=float,
-        default=1.0,
-        help="the amount of noise to add during sampling (0-1)",
-    )
+    p.add_argument("--eta", type=float, default=0.0, help="the amount of noise to add during sampling (0-1)")
     p.add_argument("--init", type=str, help="the init image")
     p.add_argument(
-        "--model",
+        "--method",
         type=str,
-        default="cc12m_1",
-        choices=get_models(),
-        help="the model to use",
+        default="ddpm",
+        choices=["ddpm", "ddim", "prk", "plms", "pie", "plms2"],
+        help="the sampling method to use",
     )
+    p.add_argument("--model", type=str, default="cc12m_1", choices=get_models(), help="the model to use")
     p.add_argument("-n", type=int, default=1, help="the number of images to sample")
     p.add_argument("--seed", type=int, default=0, help="the random seed")
     p.add_argument("--size", type=int, nargs=2, help="the output image size")
     p.add_argument(
-        "--starting-timestep",
-        "-st",
-        type=float,
-        default=0.9,
-        help="the timestep to start at (used with init images)",
+        "--starting-timestep", "-st", type=float, default=0.9, help="the timestep to start at (used with init images)"
     )
     p.add_argument("--steps", type=int, default=1000, help="the number of timesteps")
     args = p.parse_args()
@@ -195,9 +182,23 @@ def main():
         else:
             extra_args = {}
             cond_fn_ = partial(cond_fn, clip_embed=clip_embed)
-        if not args.clip_guidance_scale:
-            return sampling.sample(model, x, steps, args.eta, extra_args)
-        return sampling.cond_sample(model, x, steps, args.eta, extra_args, cond_fn_)
+        if args.clip_guidance_scale:
+            model_fn = make_cond_model_fn(model, cond_fn_)
+        else:
+            model_fn = model
+        if args.method == "ddpm":
+            return sampling.sample(model_fn, x, steps, 1.0, extra_args)
+        if args.method == "ddim":
+            return sampling.sample(model_fn, x, steps, args.eta, extra_args)
+        if args.method == "prk":
+            return sampling.prk_sample(model_fn, x, steps, extra_args)
+        if args.method == "plms":
+            return sampling.plms_sample(model_fn, x, steps, extra_args)
+        if args.method == "pie":
+            return sampling.pie_sample(model_fn, x, steps, extra_args)
+        if args.method == "plms2":
+            return sampling.plms2_sample(model_fn, x, steps, extra_args)
+        assert False
 
     def run_all(n, batch_size):
         x = torch.randn([n, 3, side_y, side_x], device=device)

@@ -47,7 +47,11 @@ def main():
     p.add_argument("--device", type=str, help="the device to use")
     p.add_argument("--max-timestep", "-mt", type=float, default=1.0, help="the maximum timestep")
     p.add_argument(
-        "--method", type=str, default="plms", choices=["ddim", "prk", "plms"], help="the sampling method to use"
+        "--method",
+        type=str,
+        default="plms",
+        choices=["ddim", "prk", "plms", "pie", "plms2"],
+        help="the sampling method to use",
     )
     p.add_argument("--model", type=str, default="cc12m_1_cfg", choices=["cc12m_1_cfg"], help="the model to use")
     p.add_argument("--output", "-o", type=str, default="out.png", help="the output filename")
@@ -127,6 +131,12 @@ def main():
         if args.method == "plms":
             x = sampling.plms_sample(model, init, steps, {"clip_embed": zero_embed}, is_reverse=True)
             out = sampling.plms_sample(cfg_model_fn, x, steps.flip(0)[:-1], {})
+        if args.method == "pie":
+            x = sampling.pie_sample(model, init, steps, {"clip_embed": zero_embed}, is_reverse=True)
+            out = sampling.pie_sample(cfg_model_fn, x, steps.flip(0)[:-1], {})
+        if args.method == "plms2":
+            x = sampling.plms2_sample(model, init, steps, {"clip_embed": zero_embed}, is_reverse=True)
+            out = sampling.plms2_sample(cfg_model_fn, x, steps.flip(0)[:-1], {})
         utils.to_pil_image(out[0]).save(args.output)
 
     try:
