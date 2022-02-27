@@ -557,7 +557,7 @@ def main():
     wandb_logger = pl.loggers.WandbLogger(project=args.project_name, save_dir="checkpoints/")
     wandb_logger.watch(model.model)
     ckpt_callback = pl.callbacks.ModelCheckpoint(
-        every_n_train_steps=2500,
+        every_n_train_steps=10,
         save_top_k=2,
         monitor="val_loss",
         auto_insert_metric_name=True,
@@ -584,7 +584,7 @@ def main():
     )
     args = p.parse_args()
     trainer = pl.Trainer.from_argparse_args(args)
-    wandb.init(config=vars(args), save_code=True, name="Diffusion Run")
+    # wandb.init(config=vars(args), save_code=True, name="Diffusion Run")
     for k, v in vars(args).items():
         wandb.config[str(k)] = v
     wandb.config["command"] = get_command_as_called()
