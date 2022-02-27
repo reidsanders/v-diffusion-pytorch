@@ -230,7 +230,7 @@ class LightningDiffusion(pl.LightningModule):
         elif self.scheduler == "exponentiallr":
             lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.gamma)
         else:
-            lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=1)
+            return optimizer
         lr_scheduler_config = {
             # REQUIRED: The scheduler instance
             "scheduler": lr_scheduler,
@@ -258,7 +258,6 @@ class LightningDiffusion(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": lr_scheduler_config,
         }
-        # return optim.AdamW(self.model.parameters(), lr=5e-6, weight_decay=0.01)
 
     def eval_batch(self, batch):
         reals, captions = batch
