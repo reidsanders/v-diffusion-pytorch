@@ -227,4 +227,4 @@ This is formatted with black.
 
 ### Acknowledgements
 
-Thanks to @kcrawson for the original code. Also thanks to Tensorflow Research Cloud for the tpu credits.
+Thanks to Katherine Crowson for the original code. Also thanks to Tensorflow Research Cloud for the tpu credits.
