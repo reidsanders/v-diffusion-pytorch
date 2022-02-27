@@ -221,7 +221,7 @@ wandb.config.yourvalue = 2345
 
 - Lightning tuner and profiler does not work.
 
-You can also download some pretrained models for some experiments here. See also [dataset creation scripts](https://github.com/reidsanders/dataset-creation-scripts) for text and emoji dataset generation, and [danbooru utility](https://github.com/reidsanders/danbooru-utility) for face recognition and filtering on gwern's danbooru dataset.
+You can also download some pretrained models for some of the experiments [sentence drawtext](https://drive.google.com/file/d/1paC3h-dVzSOiLPm8D2-xaIyev8H97E2J/view?usp=sharing) [font generation](https://drive.google.com/file/d/1CsuprRzy-z5oeqBkKf7nxdoxZdvWmzlY/view?usp=sharing). See also [dataset creation scripts](https://github.com/reidsanders/dataset-creation-scripts) for text and emoji dataset generation, and [danbooru utility](https://github.com/reidsanders/danbooru-utility) for face recognition and filtering on gwern's danbooru dataset.
 
 This is formatted with black.
 
