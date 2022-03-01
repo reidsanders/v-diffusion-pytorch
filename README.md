@@ -150,9 +150,11 @@ export XRT_TPU_CONFIG="localservice;0;localhost:51011"
 export XLA_USE_BF16=1
 ```
 
-And install the appropriate torch_xla for your torch:
+And install the appropriate libtpu and torch_xla for your torch. Currently I found the following the only real working option
+(see https://github.com/pytorch/xla/issues/3214):
 ```sh
-pip3 install torch_xla[tpuvm] -f https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-1.10-cp38-cp38-linux_x86_64.whl
+$ pip install https://storage.googleapis.com/cloud-tpu-tpuvm-artifacts/wheels/libtpu-nightly/ libtpu_nightly-0.1.dev20211015-py3-none-any.whl
+$ pip install torch_xla[tpuvm] -f https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-1.10-cp38-cp38-linux_x86_64.whl
 ```
 
 Then you can start a training run:
