@@ -36,33 +36,7 @@ def resize_and_center_crop(image, size):
     return TF.center_crop(image, size[::-1])
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
-    p.add_argument("--images", type=str, default=[], nargs="*", metavar="IMAGE", help="the image prompts")
-    p.add_argument("--batch-size", "-bs", type=int, default=1, help="the number of images per batch")
-    p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
-    p.add_argument("--device", type=str, help="the device to use")
-    p.add_argument("--eta", type=float, default=0.0, help="the amount of noise to add during sampling (0-1)")
-    p.add_argument("--init", type=str, help="the init image")
-    p.add_argument(
-        "--method",
-        type=str,
-        default="plms",
-        choices=["ddpm", "ddim", "prk", "plms", "pie", "plms2"],
-        help="the sampling method to use",
-    )
-    p.add_argument("--model", type=str, default="cc12m_1_cfg", choices=["cc12m_1_cfg"], help="the model to use")
-    p.add_argument("-n", type=int, default=1, help="the number of images to sample")
-    p.add_argument("--seed", type=int, default=0, help="the random seed")
-    p.add_argument("--size", type=int, nargs=2, help="the output image size")
-    p.add_argument(
-        "--starting-timestep", "-st", type=float, default=0.9, help="the timestep to start at (used with init images)"
-    )
-    p.add_argument("--steps", type=int, default=50, help="the number of timesteps")
-    p.add_argument("--outdir", type=str, default="./generated-images/", help="Directory to save output files to")
-    args = p.parse_args()
-
+def main(args: argparse.Namespace):
     if args.device:
         device = torch.device(args.device)
     else:
@@ -172,7 +146,8 @@ def main():
             cur_batch_size = min(n - i, batch_size)
             outs = run(x[i : i + cur_batch_size], steps)
             for j, out in enumerate(outs):
-                utils.to_pil_image(out).save(Path(args.outdir, f"out_{i + j:05}.png"))
+                prompt_specific_dirname = f"{args.prompt.replace(' ', '_')}"
+                utils.to_pil_image(out).save(Path(args.outdir, prompt_specific_dirname, f"out_{i + j:05}.png"))
 
     try:
         if not Path.is_dir(Path(args.outdir)):
@@ -183,4 +158,29 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument("prompts", type=str, default=[], nargs="*", help="the text prompts to use")
+    p.add_argument("--images", type=str, default=[], nargs="*", metavar="IMAGE", help="the image prompts")
+    p.add_argument("--batch-size", "-bs", type=int, default=1, help="the number of images per batch")
+    p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
+    p.add_argument("--device", type=str, help="the device to use")
+    p.add_argument("--eta", type=float, default=0.0, help="the amount of noise to add during sampling (0-1)")
+    p.add_argument("--init", type=str, help="the init image")
+    p.add_argument(
+        "--method",
+        type=str,
+        default="plms",
+        choices=["ddpm", "ddim", "prk", "plms", "pie", "plms2"],
+        help="the sampling method to use",
+    )
+    p.add_argument("--model", type=str, default="cc12m_1_cfg", choices=["cc12m_1_cfg"], help="the model to use")
+    p.add_argument("-n", type=int, default=1, help="the number of images to sample")
+    p.add_argument("--seed", type=int, default=0, help="the random seed")
+    p.add_argument("--size", type=int, nargs=2, help="the output image size")
+    p.add_argument(
+        "--starting-timestep", "-st", type=float, default=0.9, help="the timestep to start at (used with init images)"
+    )
+    p.add_argument("--steps", type=int, default=50, help="the number of timesteps")
+    p.add_argument("--outdir", type=str, default="./generated-images/", help="Directory to save output files to")
+    args = p.parse_args()
+    main(args)
