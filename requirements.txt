@@ -10,4 +10,3 @@ torchtext
 torchmetrics
 tqdm
 wandb
-libtpu-nightly

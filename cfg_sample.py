@@ -146,8 +146,11 @@ def main(args: argparse.Namespace):
             cur_batch_size = min(n - i, batch_size)
             outs = run(x[i : i + cur_batch_size], steps)
             for j, out in enumerate(outs):
-                prompt_specific_dirname = f"{args.prompt.replace(' ', '_')}"
-                utils.to_pil_image(out).save(Path(args.outdir, prompt_specific_dirname, f"out_{i + j:05}.png"))
+                txt, weight = parse_prompt(args.prompts[0])  # only use first for name
+                prompt_named_outdir = Path(args.outdir) / Path(f"{txt[:200].replace(' ', '_')}")
+                if not Path.is_dir(Path(prompt_named_outdir)):
+                    Path.mkdir(prompt_named_outdir)
+                utils.to_pil_image(out).save(prompt_named_outdir / f"out_{i + j:05}.png")
 
     try:
         if not Path.is_dir(Path(args.outdir)):
